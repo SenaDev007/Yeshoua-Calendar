@@ -1,0 +1,6 @@
+// Modèle — copier vers android/key.properties et remplacer par vos secrets.
+// Le keystore android/app/upload-keystore.jks est HORS dépôt Git (see .gitignore).
+storePassword=MOT_DE_PASSE_DU_KEYSTORE
+keyPassword=MOT_DE_PASSE_DU_KEYSTORE
+keyAlias=upload
+storeFile=upload-keystore.jks

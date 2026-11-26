@@ -1,0 +1,60 @@
+# Fiche Google Play Store — Horloge Céleste
+
+Application : Horloge Céleste · Package : com.yeshua.horlogeceleste · Version 1.0.0 (code 1)
+
+## Titre de l'application (30 caractères max)
+
+Horloge Céleste
+
+## Description courte (80 caractères max)
+
+Calendrier biblique de 364 jours, veilles, fêtes et alarmes RHEMA chaque jour.
+
+## Description complète
+
+Horloge Céleste replace votre journée à la lumière du calendrier biblique de
+364 jours : quatre saisons de 91 jours, les jours comptés depuis le début du
+cycle, les fêtes bibliques, les veilles de la nuit et les heures de prière —
+le tout dans une application française, sobre et lumineuse.
+
+CALENDRIER DE 364 JOURS
+• Le jour biblique en cours, sa saison et sa position dans le cycle annuel ;
+• Les sabbats hebdomadaires et mensuels, mis en évidence dans la vue du mois ;
+• Les grandes fêtes bibliques signalées sur l'année ;
+• Le décompte « Jour du Seigneur » qui rapproche chaque jour du septième.
+
+AUJOURD'HUI
+• Un grand cadran qui montre la part du jour et la part de la nuit, avec
+  lever et coucher du soleil selon votre position (localisation optionnelle) ;
+• Les trois veilles bibliques — veille du soir, veille de minuit, veille de
+  l'aube — aux heures de votre région ;
+• La date du calendrier civil et la progression du jour biblique.
+
+ALARMES RHEMA
+• Une sonnerie à chaque veille et aux heures posées (aube, matin, neuvième
+  heure, soir, minuit), même application fermée ou écran verrouillé ;
+• Alarmes exactes Android, respectueuses des modes économie d'énergie ;
+• Activation individuelle de chaque rappel.
+
+MOIS ET ANNÉES
+• La grille du mois biblique avec sabbats et fêtes en couleur ;
+• Les frises saisonnières des quatre saisons du calendrier de 364 jours ;
+• Le repérage rapide des jours de célébration.
+
+PRIVÉE PAR CONCEPTION
+• Aucune donnée personnelle collectée, aucune publicité, aucun traçeur ;
+• La localisation, si vous l'acceptez, est calculée sur votre téléphone et
+  ne quitte jamais celui-ci ;
+• Fonctionne hors connexion une fois installée.
+
+Horloge Céleste est gratuite. Elle est destinée à tous ceux qui veulent
+prier aux heures bibliques, suivre le calendrier de 364 jours et garder les
+fêtes — enfants d'Israël, disciples de Yeshoua et curieux des Écritures.
+
+## Champs techniques
+
+• Catégorie : Lifestyle
+• Balises suggérées : calendrier, religion, prière, temps, fêtes
+• Langue : français (fr-FR), application entièrement française
+• Contenu : classé tout public (aucun contenu sensible)
+• Annonceur : aucun contenu publicitaire, aucune transaction intégrée

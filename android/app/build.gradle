@@ -13,6 +13,15 @@ if (localPropertiesFile.exists()) {
 def flutterVersionCode = localProperties.getProperty('flutter.versionCode') ?: '1'
 def flutterVersionName = localProperties.getProperty('flutter.versionName') ?: '1.0.0'
 
+// Clé de signature Play Store (upload key) — android/key.properties,
+// hors dépôt Git (.gitignore). Sans ce fichier, retour à la signature debug
+// pour les builds locaux ; `flutter build appbundle` signe avec la clé d'upload.
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file('key.properties')
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
 android {
     namespace "com.yeshua.horlogeceleste"
     compileSdk 35
@@ -39,11 +48,20 @@ android {
         resourceConfigurations += ["fr"]
     }
 
+    signingConfigs {
+        release {
+            keyAlias keystoreProperties['keyAlias']
+            keyPassword keystoreProperties['keyPassword']
+            storeFile keystoreProperties['storeFile'] ? file(keystoreProperties['storeFile']) : null
+            storePassword keystoreProperties['storePassword']
+        }
+    }
+
     buildTypes {
         release {
-            // Signature debug par défaut pour les builds locaux ;
-            // remplacer par votre keystore pour le Play Store.
-            signingConfig signingConfigs.debug
+            // Clé d'upload Play Store si key.properties est présent,
+            // signature debug sinon (builds locaux sans keystore).
+            signingConfig keystorePropertiesFile.exists() ? signingConfigs.release : signingConfigs.debug
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'),

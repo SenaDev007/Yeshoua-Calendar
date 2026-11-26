@@ -27,3 +27,9 @@ ios/Flutter/ephemeral/
 # Misc
 *.log
 .DS_Store
+
+# Signature Play Store — clés et secrets hors dépôt
+android/key.properties
+android/app/upload-keystore.jks
+*.jks
+*.keystore

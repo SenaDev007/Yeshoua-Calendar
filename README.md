@@ -173,3 +173,24 @@ sont calculés localement.
 | Blanc | `#FFFFFF` | cartes et surfaces |
 | Ardoise | `#1E293B` | textes et contrastes |
 | Gris secondaire | `#64748B` | textes atténués |
+
+
+## Publication Google Play Store — dossier prêt
+
+Tout ce qui pouvait être préparé avant le dépôt est en place :
+
+- **Signature** : clé d'upload RSA 2048 (alias `upload`, valable jusqu'en 2054)
+  câblée dans `android/app/build.gradle` via `android/key.properties`
+  (hors dépôt Git — modèle sans secret dans `android/key.properties.example`).
+  `flutter build appbundle --release` signe automatiquement. Sauvegarde du
+  keystore + mot de passe livrée à part (`cles-play-store.zip`).
+- **Version** : `1.0.0+1` (`pubspec.yaml`) — incrémenter le code à chaque dépôt.
+- **Identifiant** : `com.yeshua.horlogeceleste` (aucun `com.example`), targetSdk 35.
+- **Graphiques** (`play-store/`) : logo 512×512 **fond blanc**,
+  affiche 1024×500 opaque, 4 rendus d'écrans 1080×1920 (maquettes fidèles au
+  code — à remplacer par de vraies captures après premier `flutter run`).
+- **Fiche** : textes prêts (`play-store/fiche-play-store.txt`) et réponses aux
+  formulaires (`play-store/reponses-formulaires.md`).
+- **Politique de confidentialité** : `docs/politique-confidentialite.html` —
+  activer GitHub Pages puis coller l'URL dans la Console.
+- **Guide pas à pas** : `Guide-Publication-PlayStore-HorlogeCeleste.docx`.
