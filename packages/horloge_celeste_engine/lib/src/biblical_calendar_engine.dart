@@ -1,4 +1,4 @@
-/// ⭐ CALENDRIER BIBLIQUE DE 364 JOURS — PHASE 5 du cahier des charges ZMAN.
+/// ⭐ CALENDRIER BIBLIQUE DE 364 JOURS — PHASE 5 du cahier des charges Horloge Céleste.
 ///
 /// REPRODUCTION EXACTE du calendrier servi par le backend « Mouvement
 /// Christ Libère » (`/api/calendrier-biblique/{annee}`), moteur du

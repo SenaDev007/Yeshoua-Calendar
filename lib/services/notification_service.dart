@@ -73,8 +73,8 @@ class NotificationService {
     final androidImpl = _plugin.resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin>();
     const canalAlarme = AndroidNotificationChannel(
-      'zman_alarmes',
-      'Alarmes spirituelles Zman',
+      'alarmes_celestes',
+      'Alarmes spirituelles Horloge Céleste',
       description: 'RHEMA du matin, préparation du soir et RHEMA du soir',
       importance: Importance.max,
       playSound: true,
@@ -137,8 +137,8 @@ class NotificationService {
 
   NotificationDetails _details({required bool vibration}) {
     final android = AndroidNotificationDetails(
-      'zman_alarmes',
-      'Alarmes spirituelles Zman',
+      'alarmes_celestes',
+      'Alarmes spirituelles Horloge Céleste',
       channelDescription:
           'RHEMA du matin, préparation du soir et RHEMA du soir',
       importance: Importance.max,

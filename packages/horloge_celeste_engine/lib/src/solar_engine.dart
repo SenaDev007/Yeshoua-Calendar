@@ -1,4 +1,4 @@
-/// ⭐ SOLAR ENGINE — PHASE 3 du cahier des charges ZMAN.
+/// ⭐ SOLAR ENGINE — PHASE 3 du cahier des charges Horloge Céleste.
 ///
 /// Calcul astronomique EMBARQUÉ (aucune connexion Internet, §9.3) :
 /// lever et coucher du soleil selon l'algorithme NOAA (U.S. Naval

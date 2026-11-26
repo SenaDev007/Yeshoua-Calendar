@@ -5,12 +5,12 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:zman_engine/zman_engine.dart';
+import 'package:horloge_celeste_engine/horloge_celeste_engine.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../data/models/formatters.dart';
 import '../../state/settings_controller.dart';
-import '../../state/zman_controller.dart';
+import '../../state/horloge_controller.dart';
 import '../widgets/cartes.dart';
 import '../widgets/horloge_analogique.dart';
 
@@ -19,9 +19,9 @@ class HorlogeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final zman = ref.watch(zmanProvider);
+    final etat = ref.watch(horlogeProvider);
     final settings = ref.watch(settingsProvider);
-    final periode = zman.periode;
+    final periode = etat.periode;
 
     final enNuit = periode is NuitEnCours;
     final enJour = periode is JourEnCours;
@@ -43,7 +43,7 @@ class HorlogeScreen extends ConsumerWidget {
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       children: [
         // ── Bascule numérique / analogique ──
-        CarteZman(
+        CarteCeleste(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           enfant: Row(
             children: [
@@ -77,21 +77,21 @@ class HorlogeScreen extends ConsumerWidget {
         const SizedBox(height: 12),
 
         // ── Horloge ──
-        CarteZman(
+        CarteCeleste(
           padding: const EdgeInsets.all(22),
           enfant: settings.horlogeAnalogique
               ? Column(
                   children: [
                     Center(
                       child: HorlogeAnalogique(
-                        maintenant: zman.maintenant,
+                        maintenant: etat.maintenant,
                         labelPeriode: labelPeriode,
                         sousLabelPeriode: sousLabel,
                         nuit: enNuit,
                       ),
                     ),
                     const SizedBox(height: 14),
-                    _ligneInfos(zman, enNuit),
+                    _ligneInfos(etat, enNuit),
                   ],
                 )
               : Column(
@@ -105,7 +105,7 @@ class HorlogeScreen extends ConsumerWidget {
                         ],
                       ).createShader(bounds),
                       child: Text(
-                        heureSecondeFormat(zman.maintenant),
+                        heureSecondeFormat(etat.maintenant),
                         style: const TextStyle(
                           fontSize: 52,
                           fontWeight: FontWeight.w800,
@@ -117,7 +117,7 @@ class HorlogeScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      dateLongueFrancais(zman.maintenant),
+                      dateLongueFrancais(etat.maintenant),
                       style: const TextStyle(
                         color: AppColors.grisSecondaire,
                         fontSize: 13,
@@ -170,14 +170,14 @@ class HorlogeScreen extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 14),
-                    _ligneInfos(zman, enNuit),
+                    _ligneInfos(etat, enNuit),
                   ],
                 ),
         ),
         const SizedBox(height: 12),
 
         // ── Date biblique ──
-        CarteZman(
+        CarteCeleste(
           enfant: Row(
             children: [
               Container(
@@ -198,8 +198,8 @@ class HorlogeScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      zman.jourBiblique != null
-                          ? '${zman.jourBiblique!.jourDuMois} ${zman.jourBiblique!.nomMois}'
+                      etat.jourBiblique != null
+                          ? '${etat.jourBiblique!.jourDuMois} ${etat.jourBiblique!.nomMois}'
                           : '—',
                       style: const TextStyle(
                         color: AppColors.ardoise,
@@ -208,16 +208,16 @@ class HorlogeScreen extends ConsumerWidget {
                       ),
                     ),
                     Text(
-                      zman.jourBiblique != null
-                          ? '${zman.jourBiblique!.nomJourSemaine} · Jour ${zman.jourBiblique!.jourDeAnnee}/364 · '
-                              'Année ${zman.anneeBiblique?.libelle ?? ''}'
+                      etat.jourBiblique != null
+                          ? '${etat.jourBiblique!.nomJourSemaine} · Jour ${etat.jourBiblique!.jourDeAnnee}/364 · '
+                              'Année ${etat.anneeBiblique?.libelle ?? ''}'
                           : '—',
                       style: const TextStyle(
                         color: AppColors.grisSecondaire,
                         fontSize: 12,
                       ),
                     ),
-                    if (zman.jourBiblique?.estShabbat ?? false)
+                    if (etat.jourBiblique?.estShabbat ?? false)
                       Padding(
                         padding: const EdgeInsets.only(top: 6),
                         child: Container(
@@ -250,8 +250,8 @@ class HorlogeScreen extends ConsumerWidget {
         const SizedBox(height: 12),
 
         // ── Compte à rebours ──
-        if (!zman.calculSolaireIndisponible)
-          CarteZman(
+        if (!etat.calculSolaireIndisponible)
+          CarteCeleste(
             bordure: AppColors.orSolaire.withValues(alpha: 0.45),
             enfant: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -272,7 +272,7 @@ class HorlogeScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  'Prochain coucher du soleil : ${zman.prochainCoucher != null ? heureCivilFormat(zman.prochainCoucher!) : '—'}',
+                  'Prochain coucher du soleil : ${etat.prochainCoucher != null ? heureCivilFormat(etat.prochainCoucher!) : '—'}',
                   style: const TextStyle(
                     color: AppColors.grisSecondaire,
                     fontSize: 11.5,
@@ -280,7 +280,7 @@ class HorlogeScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 12),
                 BoitesCompteARebours(
-                  duree: zman.compteAReboursCoucher,
+                  duree: etat.compteAReboursCoucher,
                   accent: AppColors.orSolaire,
                 ),
               ],
@@ -290,25 +290,25 @@ class HorlogeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _ligneInfos(ZmanState zman, bool enNuit) => Row(
+  Widget _ligneInfos(HorlogeState etat, bool enNuit) => Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          _info('Heure civile', heureCivilFormat(zman.maintenant)),
+          _info('Heure civile', heureCivilFormat(etat.maintenant)),
           _info(
             enNuit ? 'Prochain lever' : 'Prochain coucher',
             enNuit
-                ? (zman.solarJour?.calculable ?? false
-                    ? heureCivilFormat(zman.solarJour!.lever!)
+                ? (etat.solarJour?.calculable ?? false
+                    ? heureCivilFormat(etat.solarJour!.lever!)
                     : '—')
-                : (zman.prochainCoucher != null
-                    ? heureCivilFormat(zman.prochainCoucher!)
+                : (etat.prochainCoucher != null
+                    ? heureCivilFormat(etat.prochainCoucher!)
                     : '—'),
           ),
           _info(
             'Position',
-            zman.position.libelle.length > 18
-                ? '${zman.position.libelle.substring(0, 18)}…'
-                : zman.position.libelle,
+            etat.position.libelle.length > 18
+                ? '${etat.position.libelle.substring(0, 18)}…'
+                : etat.position.libelle,
           ),
         ],
       );

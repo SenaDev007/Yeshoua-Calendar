@@ -1,4 +1,4 @@
-/// ⭐ ZMAN APP — coquille de navigation (§10.3) : cinq espaces, pas plus.
+/// ⭐ Horloge Céleste APP — coquille de navigation (§10.3) : cinq espaces, pas plus.
 ///
 ///   1. Accueil      — vue d'ensemble du cycle biblique en cours ;
 ///   2. Horloge      — divine clock numérique / analogique (§6) ;
@@ -23,8 +23,8 @@ import 'ui/screens/horloge_screen.dart';
 import 'ui/screens/parametres_screen.dart';
 import 'ui/screens/temps_biblique_screen.dart';
 
-class ZmanApp extends ConsumerWidget {
-  const ZmanApp({super.key});
+class HorlogeCelesteApp extends ConsumerWidget {
+  const HorlogeCelesteApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -73,14 +73,23 @@ class _CoquilleNavigationState extends ConsumerState<CoquilleNavigation> {
                       color: AppColors.bleuCielNuit,
                       border: Border.all(color: AppColors.orSolaire, width: 2),
                     ),
-                    child: const Icon(Icons.schedule, size: 20, color: AppColors.orSolaire),
+                    // Logo Horloge Céleste (placeholder — logo officiel à
+                    // intégrer quand il sera fourni).
+                    child: ClipOval(
+                      child: Image.asset(
+                        'assets/images/logo-horloge-celeste.png',
+                        width: 36,
+                        height: 36,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 10),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Zman · זְמַן',
+                        'Horloge Céleste',
                         style: TextStyle(
                           color: AppColors.ardoise,
                           fontWeight: FontWeight.w800,

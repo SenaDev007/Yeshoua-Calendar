@@ -3,8 +3,8 @@
 /// « Aujourd'hui », grille mensuelle 12 mois, fêtes de l'Éternel par
 /// année), MAIS :
 ///   • moteur LOCAL hors connexion (parité 100 % avec le backend,
-///     prouvée par les tests du package zman_engine) ;
-///   • palette officielle Zman (bleu céleste / or solaire / ivoire) ;
+///     prouvée par les tests du package horloge_celeste_engine) ;
+///   • palette officielle Horloge Céleste (bleu céleste / or solaire / ivoire) ;
 ///   • coucher du soleil RÉEL LOCAL (plus de 18 h 00 symboliques) ;
 ///   • changement de date biblique synchronisé au coucher réel.
 library;
@@ -12,11 +12,12 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:zman_engine/zman_engine.dart';
+import 'package:horloge_celeste_engine/horloge_celeste_engine.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../data/models/formatters.dart';
-import '../../state/zman_controller.dart';
+import '../../state/horloge_controller.dart';
+import '../widgets/carte_saisonniere.dart';
 import '../widgets/cartes.dart';
 
 class CalendrierScreen extends ConsumerStatefulWidget {
@@ -33,8 +34,8 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final zman = ref.watch(zmanProvider);
-    final anneeReference = zman.anneeBiblique?.annee ??
+    final etat = ref.watch(horlogeProvider);
+    final anneeReference = etat.anneeBiblique?.annee ??
         BiblicalCalendarEngine.anneePourDate(DateTime.now()).annee;
     final anneeChoisie = (anneeReference + _decalageAnnee)
         .clamp(BiblicalCalendarEngine.anneeMin, BiblicalCalendarEngine.anneeMax);
@@ -65,9 +66,9 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen> {
           Expanded(
             child: TabBarView(
               children: [
-                _vueAujourdhui(zman, annee),
+                _vueAujourdhui(etat, annee),
                 _vueMensuelle(annee),
-                _vueAnnees(annee, zman),
+                _vueAnnees(annee, etat),
               ],
             ),
           ),
@@ -78,9 +79,9 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen> {
 
   // ─── Vue 1 : aujourd'hui ────────────────────────────────────────────
 
-  Widget _vueAujourdhui(ZmanState zman, AnneeBiblique annee) {
-    final jour = zman.jourBiblique ?? annee.jourPourDate(DateTime.now());
-    final maintenant = zman.maintenant;
+  Widget _vueAujourdhui(HorlogeState etat, AnneeBiblique annee) {
+    final jour = etat.jourBiblique ?? annee.jourPourDate(DateTime.now());
+    final maintenant = etat.maintenant;
     // Fêtes à venir (joursRestants ≥ 0).
     final fetesAVenir = annee.fetes
         .map((f) => (fete: f, joursRestants: BiblicalCalendarEngine.joursRestants(f, maintenant: maintenant)))
@@ -93,9 +94,9 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen> {
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       children: [
         if (jour != null) ...[
-          _carteJourBiblique(jour, maintenant, zman),
+          _carteJourBiblique(jour, maintenant, etat),
           const SizedBox(height: 12),
-          _carteCoucherSoleil(zman),
+          _carteCoucherSoleil(etat),
           const SizedBox(height: 12),
         ],
         if (prochaineFete != null) ...[
@@ -122,26 +123,29 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen> {
     );
   }
 
-  Widget _carteJourBiblique(JourBiblique j, DateTime maintenant, ZmanState zman) {
+  Widget _carteJourBiblique(JourBiblique j, DateTime maintenant, HorlogeState etat) {
     final aujourdhui = DateTime(maintenant.year, maintenant.month, maintenant.day);
     final estJourCourant = j.dateGregorienne == aujourdhui;
-    final saison = const ['Printemps', 'Été', 'Automne', 'Hiver']
-        [(j.trimestre - 1).clamp(0, 3)];
+    final saisonImage = ImageSaison.depuisTrimestre(j.trimestre);
+    final saison = ImageSaison.noms[saisonImage]!;
 
-    return CarteZman(
-      enfant: Column(
+    // Carte principale avec IMAGE DE SAISON sous voile — même
+    // embellissement que la carte « jour en cours » de la page web.
+    return BandeauSaisonnier(
+      saison: saisonImage,
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.auto_awesome, size: 14, color: AppColors.orSolaire),
+              const Icon(Icons.auto_awesome, size: 14, color: AppColors.orVif),
               const SizedBox(width: 6),
               Text(
                 estJourCourant
                     ? 'JOUR BIBLIQUE EN COURS · $saison'
                     : 'JOUR BIBLIQUE · $saison',
                 style: const TextStyle(
-                  color: AppColors.orFonce,
+                  color: AppColors.orVif,
                   fontSize: 10.5,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 1.2,
@@ -153,26 +157,26 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen> {
           Text(
             '${j.jourDuMois} ${j.nomMois}',
             style: const TextStyle(
-              color: AppColors.ardoise,
+              color: AppColors.blanc,
               fontWeight: FontWeight.w800,
               fontSize: 30,
             ),
           ),
           const SizedBox(height: 4),
           Text(
-            '${j.nomJourSemaine} · Jour ${j.jourDeAnnee} de l\u2019année ${zman.anneeBiblique?.libelle ?? ''}',
-            style: const TextStyle(color: AppColors.grisSecondaire, fontSize: 13.5),
+            '${j.nomJourSemaine} · Jour ${j.jourDeAnnee} de l\u2019année ${etat.anneeBiblique?.libelle ?? ''}',
+            style: TextStyle(color: AppColors.blanc.withValues(alpha: 0.82), fontSize: 13.5),
           ),
           const SizedBox(height: 8),
           Row(
             children: [
               const Icon(Icons.calendar_today_outlined,
-                  size: 13, color: AppColors.orSolaire),
+                  size: 13, color: AppColors.orVif),
               const SizedBox(width: 6),
               Text(
                 dateLongueFrancais(j.dateGregorienne),
                 style: TextStyle(
-                  color: AppColors.grisSecondaire.withValues(alpha: 0.9),
+                  color: AppColors.blanc.withValues(alpha: 0.85),
                   fontSize: 12.5,
                 ),
               ),
@@ -183,14 +187,14 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                color: AppColors.orSolaire.withValues(alpha: 0.15),
+                color: AppColors.orSolaire.withValues(alpha: 0.28),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppColors.orSolaire.withValues(alpha: 0.45)),
+                border: Border.all(color: AppColors.orSolaire.withValues(alpha: 0.6)),
               ),
               child: const Text(
                 'Shabbat — du coucher du soleil au coucher du soleil',
                 style: TextStyle(
-                  color: AppColors.orFonce,
+                  color: AppColors.orVif,
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                 ),
@@ -201,7 +205,7 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen> {
           Text(
             'Trimestre ${j.trimestre} · Mois ${j.mois}/12 · Saison de $saison',
             style: TextStyle(
-              color: AppColors.grisSecondaire.withValues(alpha: 0.85),
+              color: AppColors.blanc.withValues(alpha: 0.75),
               fontSize: 10.5,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.8,
@@ -215,8 +219,8 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen> {
   /// Compte à rebours du COUCHER RÉEL LOCAL — improvement directe du
   /// miroir web qui affichait « ~18:00 UTC » (§2.3 : le coucher réel
   /// constitue la référence).
-  Widget _carteCoucherSoleil(ZmanState zman) {
-    return CarteZman(
+  Widget _carteCoucherSoleil(HorlogeState etat) {
+    return CarteCeleste(
       bordure: AppColors.orSolaire.withValues(alpha: 0.45),
       enfant: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -238,12 +242,12 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen> {
           const SizedBox(height: 4),
           Text(
             'Le jour biblique se termine au coucher du soleil réel de '
-            '${zman.position.libelle}.',
+            '${etat.position.libelle}.',
             style: const TextStyle(color: AppColors.grisSecondaire, fontSize: 11.5),
           ),
           const SizedBox(height: 10),
           BoitesCompteARebours(
-            duree: zman.compteAReboursCoucher,
+            duree: etat.compteAReboursCoucher,
             accent: AppColors.orSolaire,
           ),
           const SizedBox(height: 10),
@@ -252,7 +256,7 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen> {
               const Icon(Icons.wb_sunny_outlined, size: 12, color: AppColors.orSolaire),
               const SizedBox(width: 5),
               Text(
-                'Prochain coucher : ${zman.prochainCoucher != null ? heureCivilFormat(zman.prochainCoucher!) : '—'} (heure locale)',
+                'Prochain coucher : ${etat.prochainCoucher != null ? heureCivilFormat(etat.prochainCoucher!) : '—'} (heure locale)',
                 style: TextStyle(
                   color: AppColors.grisSecondaire.withValues(alpha: 0.9),
                   fontSize: 11.5,
@@ -416,6 +420,14 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       children: [
+        // Frise saisonnière — embellissement identique à la vue mensuelle
+        // de la page web (image de saison sous voile dégradé).
+        FriseSaisonnier(
+          saison: ImageSaison.depuisTrimestre(((_moisCourant - 1) ~/ 3) + 1),
+          titre: 'Mois $_moisCourant · ${ImageSaison.noms[ImageSaison.depuisTrimestre(((_moisCourant - 1) ~/ 3) + 1)]}',
+          sousTitre: 'Grille du mois biblique — Shabbats dorés, fêtes surlignées',
+        ),
+        const SizedBox(height: 10),
         // En-tête mois ◀ ▶
         Row(
           children: [
@@ -602,7 +614,7 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen> {
 
   // ─── Vue 3 : fêtes de l'Éternel par année ────────────────────────────
 
-  Widget _vueAnnees(AnneeBiblique annee, ZmanState zman) {
+  Widget _vueAnnees(AnneeBiblique annee, HorlogeState etat) {
     final fetesTriees = [...annee.fetes]
       ..sort((a, b) => a.dateGregorienne.compareTo(b.dateGregorienne));
     final aujourdhui = DateTime.now();
@@ -610,6 +622,14 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       children: [
+        // Frise de la saison en cours — embellissement de la vue annuelle
+        // (image de saison sous voile, comme les cartes trimestres du web).
+        FriseSaisonnier(
+          saison: ImageSaison.approx(aujourdhui),
+          titre: 'Fêtes de l\u2019Éternel · ${ImageSaison.noms[ImageSaison.approx(aujourdhui)]}',
+          sousTitre: 'Saison en cours — ${annee.libelle} (${annee.nombreJours} jours)',
+        ),
+        const SizedBox(height: 8),
         Row(
           children: [
             IconButton(

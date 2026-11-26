@@ -6,7 +6,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:zman_engine/zman_engine.dart';
+import 'package:horloge_celeste_engine/horloge_celeste_engine.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../data/models/formatters.dart';
@@ -23,7 +23,7 @@ class AlarmesScreen extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       children: [
-        CarteZman(
+        CarteCeleste(
           enfant: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -78,7 +78,7 @@ class AlarmesScreen extends ConsumerWidget {
             ),
           ),
         for (final h in etat.historique.take(10))
-          CarteZman(
+          CarteCeleste(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             enfant: Row(
               children: [
@@ -118,7 +118,7 @@ class AlarmesScreen extends ConsumerWidget {
     final couleur = AppColors.depuisHex(alarme.couleurHex);
     final controleur = TextEditingController(text: alarme.prefs.message);
 
-    return CarteZman(
+    return CarteCeleste(
       bordure: alarme.prefs.activee
           ? couleur.withValues(alpha: 0.45)
           : null,

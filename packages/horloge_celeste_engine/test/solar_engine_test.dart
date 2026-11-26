@@ -7,7 +7,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:test/test.dart';
-import 'package:zman_engine/zman_engine.dart';
+import 'package:horloge_celeste_engine/horloge_celeste_engine.dart';
 
 /// Jérusalem — coordonnées du backend (31.7683 N, 35.2137 E).
 const latJerusalem = 31.7683;
@@ -46,7 +46,7 @@ void main() {
       // SAISONNIERS de Jérusalem (jamais un 18 h 00 fixe) mais avec une
       // série de déclinaison simplifiée : l'écart avec le NOAA standard
       // s'annule aux solstices et équinoxes et culmine à ~39 min entre
-      // eux (signature sin(2δ)). Le moteur ZMAN retient la formule NOAA
+      // eux (signature sin(2δ)). Le moteur Horloge Céleste retient la formule NOAA
       // exacte — vérifiée contre les heures publiées — et l'app utilise
       // de toute façon le coucher RÉEL LOCAL de l'utilisateur (§2.3).
       // La parité EXACTE exigée porte sur les DATES du calendrier (voir

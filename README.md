@@ -1,13 +1,17 @@
-# ZMAN — Le temps selon les Écritures
+# Horloge Céleste — Le temps de l'alliance de l'Éternel
 
-**Yeshua Calendar** · Application mobile Flutter · זְמַן
+**Yeshua Calendar** · Application mobile Flutter
 
 Reproduction fidèle du **calendrier biblique de 364 jours** déjà implémenté
 dans [Yeshua Connect Mobile](https://github.com/SenaDev007/yeshua-connect-mobile),
 étendue d'un système complet de temps biblique : **horloge divine**, **trois
 veilles de la nuit**, **douze heures saisonnières**, **quatre parties du jour**,
 **alarmes spirituelles RHEMA** — avec l'identité visuelle lumineuse propre à
-Zman (bleu céleste `#3B82F6`, or solaire `#CFA63A`, ivoire `#F5F0E6`).
+Horloge Céleste (bleu céleste `#3B82F6`, or solaire `#CFA63A`, ivoire `#F5F0E6`)
+et, comme la page web `/calendrier-biblique` du
+[Mouvement Christ Libère](https://github.com/SenaDev007/mouvement-Christ-Libere),
+des **images de saison** (printemps, été, automne, hiver) sous voiles dégradés
+pour embellir les écrans.
 
 ---
 
@@ -15,7 +19,7 @@ Zman (bleu céleste `#3B82F6`, or solaire `#CFA63A`, ivoire `#F5F0E6`).
 
 ### PHASE 1 — Audit (compte rendu)
 - Audit complet de `yeshua-connect-mobile` : Flutter / Dart ≥3.5, Riverpod,
-  go_router, dio + cache JSON hors-ligne, calendar via backend API
+  go_router, dio + cache JSON hors-ligne, calendrier via backend API
   (`/api/calendrier-biblique/{annee}`).
 - **Rétro-ingénierie du moteur du calendrier 364 jours** depuis les données
   réelles de l'API (26 années échantillonnées 1900→2100) :
@@ -35,7 +39,7 @@ Zman (bleu céleste `#3B82F6`, or solaire `#CFA63A`, ivoire `#F5F0E6`).
 
 ### PHASE 2 — Architecture
 ```
-packages/zman_engine/            ← moteur PUR DART, 0 dépendance, 0 réseau
+packages/horloge_celeste_engine/  ← moteur PUR DART, 0 dépendance, 0 réseau
   lib/src/solar_engine.dart          (A) SolarEngine — NOAA, polaire géré
   lib/src/time_engine.dart           (A) TimeEngine — ruptures temporelles §13
   lib/src/biblical_calendar_engine.dart (calendrier 364 j — règles conservées)
@@ -44,11 +48,13 @@ packages/zman_engine/            ← moteur PUR DART, 0 dépendance, 0 réseau
   lib/src/alarm_planner.dart         (E) planification des 3 alarmes §8
   test/                              ← 113 tests (dont parité API)
 lib/                             ← application Flutter (Riverpod, 5 écrans)
-  core/theme                         palette Zman officielle §10.1
+  core/theme                         palette Horloge Céleste officielle §10.1
   services/                          localisation §9, notifications §8, store §13
-  state/                             ZmanController (tick 1 s, transitions §14)
+  state/                             HorlogeController (tick 1 s, transitions §14)
   ui/screens                         Accueil, Horloge, Temps biblique,
                                      Calendrier, Alarmes, Paramètres
+  ui/widgets                         horloge analogique, cadran des veilles,
+                                     cadran solaire, cartes saisonnières…
 ```
 Le moteur est un **package séparé testable indépendamment** (exigence §12) :
 `dart test` ne nécessite même pas le SDK Flutter.
@@ -78,7 +84,7 @@ Jérusalem/Tel Aviv) et contre les événements du backend.
   parité prouvée par `test/calendar_parity_test.dart` (7 années golden ×
   364 jours + 70 fêtes, champ par champ = 100 %).
 
-### PHASE 6 — Interface
+### PHASE 6 — Interface et embellissement
 5 espaces exactement (§10.3) : Accueil, Horloge, Temps biblique, Calendrier,
 Alarmes + Paramètres. Palette officielle uniquement, fond ivoire lumineux,
 **aucun bleu nuit profond**. Horloge numérique (comptes à rebours, date
@@ -88,18 +94,26 @@ Cadran circulaire des 3 veilles, cadran solaire des 12 heures, chronologies
 avec états distincts (terminée / en cours / à venir), grille mensuelle
 12 mois avec Shabbats dorés et fêtes colorées — comme l'app existante.
 
+**Embellissement par images** (parité avec la page web `/calendrier-biblique`) :
+les quatre paysages de saison du web (Unsplash, identifiés dans
+`vue-aujourdhui.tsx` / `vue-mensuelle.tsx` / `vue-annuelle.tsx`) sont embarqués
+dans `assets/images/` et habillent la carte du jour biblique (Accueil et
+vue Aujourd'hui), la vue Mois et la vue Années, sous des voiles dégradés
+adaptés à la palette (ardoise / bleu céleste / or). Les écrans restent
+lisibles : texte blanc sur voile, liseré doré signature.
+
 ### PHASE 7 — Alarmes
 - **RHEMA du matin** — 05 h 00 locales, répétition quotidienne.
 - **Préparation du soir** — coucher réel **− 5 minutes** (one-shot replanifié).
 - **RHEMA du soir** — **au coucher réel** exact (one-shot replanifié).
 - Reprogrammation : au démarrage, après changement de position, à la reprise.
 - Permissions Android 13+ / alarmes exactes Android 12+ avec replis ; canal
-  dédié `zman_alarmes`, son shofar intégré, vibration et messages
+  dédié `alarmes_celestes`, son shofar intégré, vibration et messages
   personnalisables, historique persistant (§8.4).
 
 ### PHASE 8 — Validation
 ```bash
-cd packages/zman_engine && dart test
+cd packages/horloge_celeste_engine && dart test
 ```
 → **113 tests passent (113/113)** :
 - parité calendrier : 2 548 jours + 70 fêtes comparés champ par champ ;
@@ -112,6 +126,11 @@ cd packages/zman_engine && dart test
   fictif, désactivations respectées ;
 - ruptures temporelles : fuseau, saut, coucher dépassé.
 
+Une **vérification statique de l'application** complète ce contrôle : tous les
+imports résolvent, les 5 écrans sont montés dans la coquille de navigation,
+toutes les classes de widgets utilisées sont définies, tous les assets
+référencés existent et aucune couleur hors charte n'est utilisée.
+
 ## 2. Ce qui reste à faire sur appareil réel
 
 Le sandbox n'exécute ni Flutter ni un émulateur Android — **aucune
@@ -123,15 +142,16 @@ fonctionnalité n'est présentée comme testée sur appareil** (§17) :
 3. test GPS réel + gestion du refus de permission ;
 4. vérification du splash/écran sur iOS (fichiers iOS à générer par
    `flutter create --platforms=ios .` dans une session Flutter complète) ;
-5. remplacer `assets/images/logo-zman.png` (placeholder dessiné selon le
-   motif du logo : cadran, sablier, lumière) par le logo officiel Zman.
+5. remplacer `assets/images/logo-horloge-celeste.png` (placeholder dessiné
+   selon le motif du logo : cadran, sablier, lumière) par le logo officiel
+   **Horloge Céleste** dès qu'il sera fourni.
 
 ## 3. Lancer le projet
 
 ```bash
 flutter pub get
 flutter run                          # appareil connecté ou émulateur
-cd packages/zman_engine && dart test # validation du moteur (113/113)
+cd packages/horloge_celeste_engine && dart test  # moteur : 113/113
 ```
 
 Application **100 % hors connexion** : aucun appel réseau, aucun backend

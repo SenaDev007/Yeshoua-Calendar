@@ -41,8 +41,8 @@ class TitreSection extends StatelessWidget {
 }
 
 /// Carte blanche standard.
-class CarteZman extends StatelessWidget {
-  const CarteZman({super.key, required this.enfant, this.padding, this.bordure});
+class CarteCeleste extends StatelessWidget {
+  const CarteCeleste({super.key, required this.enfant, this.padding, this.bordure});
 
   final Widget enfant;
   final EdgeInsetsGeometry? padding;
@@ -249,7 +249,7 @@ class CarteSoleil extends StatelessWidget {
   final bool disponible;
 
   @override
-  Widget build(BuildContext context) => CarteZman(
+  Widget build(BuildContext context) => CarteCeleste(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

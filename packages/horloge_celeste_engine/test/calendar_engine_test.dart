@@ -2,7 +2,7 @@
 library;
 
 import 'package:test/test.dart';
-import 'package:zman_engine/zman_engine.dart';
+import 'package:horloge_celeste_engine/horloge_celeste_engine.dart';
 
 void main() {
   final annee = BiblicalCalendarEngine.construireAnnee(2026);

@@ -1,6 +1,6 @@
 name: yeshua_calendar
 description: >-
-  ZMAN — Le temps selon les Écritures (Yeshua Calendar).
+  Horloge Céleste — Le temps de l’alliance de l’Éternel (Yeshua Calendar).
   Calendrier biblique de 364 jours (règles identiques au calendrier déjà
   implémenté dans Yeshua Connect Mobile), horloge divine, trois veilles de
   la nuit, douze heures saisonnières, alarmes spirituelles RHEMA.
@@ -18,10 +18,10 @@ dependencies:
     sdk: flutter
   cupertino_icons: ^1.0.8
 
-  # Moteur ZMAN — pur Dart, testé indépendamment (113 tests, dont parité
+  # Moteur Horloge Céleste — pur Dart, testé indépendamment (113 tests, dont parité
   # 100 % avec le calendrier du backend Mouvement Christ Libère).
-  zman_engine:
-    path: packages/zman_engine
+  horloge_celeste_engine:
+    path: packages/horloge_celeste_engine
 
   # Gestion d'état — mêmes versions que yeshua-connect-mobile.
   flutter_riverpod: ^2.5.1
@@ -47,5 +47,9 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/images/logo-zman.png
+    - assets/images/logo-horloge-celeste.png
+    - assets/images/saison-printemps.jpg
+    - assets/images/saison-ete.jpg
+    - assets/images/saison-automne.jpg
+    - assets/images/saison-hiver.jpg
     - assets/sounds/shofar.mp3

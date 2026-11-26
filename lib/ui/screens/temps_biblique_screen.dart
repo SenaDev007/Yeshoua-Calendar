@@ -9,8 +9,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../data/models/formatters.dart';
-import '../../state/zman_controller.dart';
-import 'package:zman_engine/zman_engine.dart';
+import '../../state/horloge_controller.dart';
+import 'package:horloge_celeste_engine/horloge_celeste_engine.dart';
 import '../widgets/cadran_nuit.dart';
 import '../widgets/cadran_solaire.dart';
 import '../widgets/cartes.dart';
@@ -21,14 +21,14 @@ class TempsBibliqueScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final zman = ref.watch(zmanProvider);
-    final periode = zman.periode;
+    final etat = ref.watch(horlogeProvider);
+    final periode = etat.periode;
 
     if (periode is PeriodeIndisponible) {
       return ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          CarteZman(
+          CarteCeleste(
             bordure: AppColors.orSolaire.withValues(alpha: 0.5),
             enfant: Column(
               children: [
@@ -64,25 +64,25 @@ class TempsBibliqueScreen extends ConsumerWidget {
     // Quand on est le jour, les veilles affichées sont celles de la nuit
     // à venir (coucher → lever suivant) ; quand on est la nuit, les
     // heures affichées sont celles du jour précédent/diurne correspondant.
-    if (enNuit && zman.solarJour != null && zman.solarSuivant != null &&
-        zman.solarJour!.calculable && zman.solarSuivant!.calculable) {
+    if (enNuit && etat.solarJour != null && etat.solarSuivant != null &&
+        etat.solarJour!.calculable && etat.solarSuivant!.calculable) {
       heuresAffichees = BiblicalTimeEngine.heuresSaisonniere(
-        lever: zman.solarJour!.lever!,
-        coucher: zman.solarJour!.coucher!,
-        maintenant: zman.maintenant,
+        lever: etat.solarJour!.lever!,
+        coucher: etat.solarJour!.coucher!,
+        maintenant: etat.maintenant,
       );
       partiesAffichees = BiblicalTimeEngine.partiesDuJour(
-        lever: zman.solarJour!.lever!,
-        coucher: zman.solarJour!.coucher!,
-        maintenant: zman.maintenant,
+        lever: etat.solarJour!.lever!,
+        coucher: etat.solarJour!.coucher!,
+        maintenant: etat.maintenant,
       );
     }
-    if (!enNuit && zman.solarJour != null && zman.solarSuivant != null &&
-        zman.solarJour!.calculable && zman.solarSuivant!.calculable) {
+    if (!enNuit && etat.solarJour != null && etat.solarSuivant != null &&
+        etat.solarJour!.calculable && etat.solarSuivant!.calculable) {
       veillesAffichees = BiblicalTimeEngine.veillesDeLaNuit(
-        coucher: zman.solarJour!.coucher!,
-        lever: zman.solarSuivant!.lever!,
-        maintenant: zman.maintenant,
+        coucher: etat.solarJour!.coucher!,
+        lever: etat.solarSuivant!.lever!,
+        maintenant: etat.maintenant,
       );
     }
 
@@ -90,7 +90,7 @@ class TempsBibliqueScreen extends ConsumerWidget {
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       children: [
         // ── Résumé de position dans le cycle (§11) ──
-        CarteZman(
+        CarteCeleste(
           enfant: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -262,16 +262,16 @@ class TempsBibliqueScreen extends ConsumerWidget {
           'Le cycle complet de la journée biblique',
           icone: Icons.all_inclusive,
         ),
-        if (zman.solarJour != null &&
-            zman.solarSuivant != null &&
-            zman.solarJour!.calculable &&
-            zman.solarSuivant!.calculable)
-          CarteZman(
+        if (etat.solarJour != null &&
+            etat.solarSuivant != null &&
+            etat.solarJour!.calculable &&
+            etat.solarSuivant!.calculable)
+          CarteCeleste(
             enfant: _cycleComplet(
-              coucher: zman.solarJour!.coucher!,
-              lever: zman.solarSuivant!.lever!,
-              coucherSuivant: zman.solarSuivant!.coucher!,
-              maintenant: zman.maintenant,
+              coucher: etat.solarJour!.coucher!,
+              lever: etat.solarSuivant!.lever!,
+              coucherSuivant: etat.solarSuivant!.coucher!,
+              maintenant: etat.maintenant,
             ),
           ),
       ],

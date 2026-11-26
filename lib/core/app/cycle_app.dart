@@ -14,7 +14,7 @@ class AppCycleLiaison with WidgetsBindingObserver {
   void Function()? _callbackReprise;
   DateTime? _arrierePlanDepuis;
 
-  /// Enregistre le callback de reprise (appelé par ZmanController).
+  /// Enregistre le callback de reprise (appelé par HorlogeController).
   void enregistrerCallback(void Function()? callback) {
     _callbackReprise = callback;
   }

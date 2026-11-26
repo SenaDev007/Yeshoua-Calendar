@@ -1,4 +1,4 @@
-/// Point d'entrée de ZMAN — Le temps selon les Écritures (Yeshua Calendar).
+/// Point d'entrée de Horloge Céleste — Le temps de l’alliance de l’Éternel (Yeshua Calendar).
 ///
 /// Initialisation :
 ///   1. persistance (shared_preferences) avant tout calcul ;
@@ -31,5 +31,5 @@ Future<void> main() async {
     // l'historique est rempli par le récepteur de notifications.
   };
 
-  runApp(const ProviderScope(child: ZmanApp()));
+  runApp(const ProviderScope(child: HorlogeCelesteApp()));
 }

@@ -1,4 +1,4 @@
-/// ⭐ ZMAN ENGINE — Le temps selon les Écritures.
+/// ⭐ Horloge Céleste ENGINE — Le temps de l’alliance de l’Éternel.
 ///
 /// Moteur pur Dart (aucune dépendance Flutter, aucun réseau) :
 ///   • [SolarEngine]      — lever / coucher du soleil (algorithme NOAA),

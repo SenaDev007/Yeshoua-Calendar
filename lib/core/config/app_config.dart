@@ -1,4 +1,4 @@
-/// Configuration ZMAN + villes intégrées pour la localisation manuelle
+/// Configuration Horloge Céleste + villes intégrées pour la localisation manuelle
 /// (§9.2 — choisir son pays et sa ville SANS connexion).
 library;
 
@@ -6,9 +6,8 @@ class AppConfig {
   AppConfig._();
 
   /// Nom et signature de l'application.
-  static const String nomApp = 'Zman';
-  static const String hebreuApp = 'זְמַן';
-  static const String signature = 'Le temps selon les Écritures';
+  static const String nomApp = 'Horloge Céleste';
+  static const String signature = 'Le temps de l’alliance de l’Éternel';
 
   /// Position par défaut : Cotonou, Bénin (Africa/Porto-Novo) — premier
   /// lancement, avant que l'utilisateur choisisse sa position.

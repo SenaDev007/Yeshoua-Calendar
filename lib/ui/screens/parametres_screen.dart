@@ -1,5 +1,5 @@
 /// ⭐ ÉCRAN PARAMÈTRES (§9, §10.2) — localisation automatique/manuelle,
-/// fuseau horaire, informations sur le calendrier. Le logo Zman est
+/// fuseau horaire, informations sur le calendrier. Le logo Horloge Céleste est
 /// respecté (§10.2) : aucun remplacement, déclinaison d'icône seulement.
 library;
 
@@ -9,7 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/config/app_config.dart';
 import '../../core/theme/app_colors.dart';
 import '../../state/settings_controller.dart';
-import '../../state/zman_controller.dart';
+import '../../state/horloge_controller.dart';
 import '../widgets/cartes.dart';
 
 class ParametresScreen extends ConsumerWidget {
@@ -18,7 +18,7 @@ class ParametresScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsProvider);
-    final zman = ref.watch(zmanProvider);
+    final etat = ref.watch(horlogeProvider);
     final villesParPays = <String, List<VilleIntegree>>{};
     for (final v in villesIntegreees) {
       villesParPays.putIfAbsent(v.pays, () => []).add(v);
@@ -34,7 +34,7 @@ class ParametresScreen extends ConsumerWidget {
         children: [
           // ── Localisation (§9) ──
           TitreSection('Localisation', icone: Icons.place_outlined),
-          CarteZman(
+          CarteCeleste(
             enfant: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -182,18 +182,18 @@ class ParametresScreen extends ConsumerWidget {
 
           // ── État du moteur (§13) ──
           TitreSection('Moteur de temps', icone: Icons.engineering_outlined),
-          CarteZman(
+          CarteCeleste(
             enfant: Column(
               children: [
                 _ligne('Horaires solaires calculés',
-                    zman.calculSolaireIndisponible ? 'indisponibles (polaire)' : 'locaux, hors connexion'),
+                    etat.calculSolaireIndisponible ? 'indisponibles (polaire)' : 'locaux, hors connexion'),
                 _ligne('Dernière transition de jour',
-                    zman.cleTransition ?? '—'),
+                    etat.cleTransition ?? '—'),
                 _ligne('Année biblique en cours',
-                    zman.anneeBiblique?.libelle ?? '—'),
+                    etat.anneeBiblique?.libelle ?? '—'),
                 _ligne('Jour de l\u2019année',
-                    zman.jourBiblique != null
-                        ? '${zman.jourBiblique!.jourDeAnnee} / 364'
+                    etat.jourBiblique != null
+                        ? '${etat.jourBiblique!.jourDeAnnee} / 364'
                         : '—'),
               ],
             ),
@@ -202,7 +202,7 @@ class ParametresScreen extends ConsumerWidget {
 
           // ── À propos (§10.2 : identité conservée) ──
           TitreSection('À propos', icone: Icons.info_outline),
-          CarteZman(
+          CarteCeleste(
             enfant: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -217,15 +217,23 @@ class ParametresScreen extends ConsumerWidget {
                         border: Border.all(
                             color: AppColors.orSolaire, width: 2.4),
                       ),
-                      child: const Icon(Icons.schedule,
-                          size: 28, color: AppColors.orSolaire),
+                      // Logo Horloge Céleste (placeholder — logo officiel
+                      // à intégrer quand il sera fourni).
+                      child: ClipOval(
+                        child: Image.asset(
+                          'assets/images/logo-horloge-celeste.png',
+                          width: 48,
+                          height: 48,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
                     ),
                     const SizedBox(width: 14),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: const [
                         Text(
-                          '${AppConfig.nomApp} · ${AppConfig.hebreuApp}',
+                          '${AppConfig.nomApp}',
                           style: TextStyle(
                             color: AppColors.ardoise,
                             fontWeight: FontWeight.w800,
@@ -302,7 +310,7 @@ class _CartePositionManuelleState extends ConsumerState<_CartePositionManuelle> 
 
   @override
   Widget build(BuildContext context) {
-    return CarteZman(
+    return CarteCeleste(
       enfant: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

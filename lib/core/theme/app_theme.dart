@@ -1,4 +1,4 @@
-/// Thème global ZMAN — clair, lumineux, premium (§10). Fond ivoire,
+/// Thème global Horloge Céleste — clair, lumineux, premium (§10). Fond ivoire,
 /// cartes blanches, bleu céleste en couleur principale, or solaire en
 /// signature (aiguilles, Shabbats, repères du nouveau jour).
 library;

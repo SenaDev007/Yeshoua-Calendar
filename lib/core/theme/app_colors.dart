@@ -1,4 +1,4 @@
-/// 🎨 Charte graphique ZMAN — palette officielle du cahier des charges
+/// 🎨 Charte graphique Horloge Céleste — palette officielle du cahier des charges
 /// (§10.1). AUCUN bleu nuit profond : l'identité est lumineuse, spirituelle
 /// et premium — bleu céleste dominant, or solaire signature, ivoire/blanc
 /// pour la luminosité, ardoise pour les textes.

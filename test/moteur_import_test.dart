@@ -1,10 +1,10 @@
 /// Test d'import du moteur depuis l'application Flutter :
-/// vérifie que le package zman_engine est bien résolu et que les règles
+/// vérifie que le package horloge_celeste_engine est bien résolu et que les règles
 /// clés restent intactes côté app (miroir léger des tests du moteur).
 ///
 /// ⚠️ Nécessite le SDK Flutter : `flutter test`.
 import 'package:flutter_test/flutter_test.dart';
-import 'package:zman_engine/zman_engine.dart';
+import 'package:horloge_celeste_engine/horloge_celeste_engine.dart';
 
 void main() {
   test('le calendrier 364 jours est intégré et conforme', () {

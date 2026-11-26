@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/config/app_config.dart';
 import '../services/location_service.dart';
 import '../services/settings_store.dart';
-import 'zman_controller.dart';
+import 'horloge_controller.dart';
 
 /// État des paramètres affichés dans l'écran Paramètres.
 class SettingsState {
@@ -90,7 +90,7 @@ class SettingsController extends Notifier<SettingsState> {
   Future<void> _appliquer(PositionUtilisateur position) async {
     state = state.copyWith(position: position);
     // Recalcul complet immédiat du moteur de temps (§9.2).
-    ref.read(zmanProvider.notifier).changerPosition(position);
+    ref.read(horlogeProvider.notifier).changerPosition(position);
   }
 
   Future<void> basculerHorlogeAnalogique(bool valeur) async {

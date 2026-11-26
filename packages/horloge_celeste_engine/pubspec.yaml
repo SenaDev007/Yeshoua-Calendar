@@ -1,6 +1,6 @@
-name: zman_engine
+name: horloge_celeste_engine
 description: >-
-  Moteur de temps biblique ZMAN — pur Dart, sans dépendance Flutter ni réseau.
+  Moteur de temps biblique Horloge Céleste — pur Dart, sans dépendance Flutter ni réseau.
   Contient : SolarEngine (lever/coucher NOAA), BiblicalCalendarEngine
   (calendrier biblique de 364 jours — règles identiques au backend du
   Mouvement Christ Libère), BiblicalTimeEngine (trois veilles, douze heures

@@ -1,4 +1,4 @@
-/// ⭐ BIBLICAL TIME ENGINE — PHASE 4 du cahier des charges ZMAN.
+/// ⭐ BIBLICAL TIME ENGINE — PHASE 4 du cahier des charges Horloge Céleste.
 ///
 /// Calcul du temps biblique à partir des horaires solaires RÉELS :
 ///   • TROIS VEILLES de la nuit (Exode 14:24, Juges 7:19, 1 Samuel 11:11)

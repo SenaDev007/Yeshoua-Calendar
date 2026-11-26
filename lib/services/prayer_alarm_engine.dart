@@ -9,7 +9,7 @@
 ///   • à chaque reprise après plusieurs heures (rupture temporelle §13).
 library;
 
-import 'package:zman_engine/zman_engine.dart';
+import 'package:horloge_celeste_engine/horloge_celeste_engine.dart';
 
 import 'notification_service.dart';
 import 'settings_store.dart';

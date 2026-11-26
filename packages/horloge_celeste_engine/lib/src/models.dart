@@ -1,4 +1,4 @@
-/// ⭐ Modèles de données du moteur ZMAN.
+/// ⭐ Modèles de données du moteur Horloge Céleste.
 ///
 /// Les structures du calendrier 364 jours sont le MIROIR EXACT de la
 /// sérialisation du backend « Mouvement Christ Libère »
@@ -262,6 +262,20 @@ class AnneeBiblique {
       if (d.year == date.year && d.month == date.month && d.day == date.day) {
         return j;
       }
+    }
+    return null;
+  }
+
+  /// Les jours d'un mois biblique (1-12) — aide d'affichage pour la
+  /// grille mensuelle ; ne modifie aucune règle du calendrier.
+  List<JourBiblique> joursDuMois(int mois) =>
+      jours.where((j) => j.mois == mois).toList();
+
+  /// La fête d'un mois biblique tombant le [jourDuMois] donné, sinon null.
+  FeteBiblique? fetePour(int mois, int jourDuMois) {
+    for (final f in fetes) {
+      final j = jourPourDate(f.dateGregorienne);
+      if (j != null && j.mois == mois && j.jourDuMois == jourDuMois) return f;
     }
     return null;
   }

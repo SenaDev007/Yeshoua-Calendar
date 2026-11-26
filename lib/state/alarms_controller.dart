@@ -6,11 +6,11 @@
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:zman_engine/zman_engine.dart';
+import 'package:horloge_celeste_engine/horloge_celeste_engine.dart';
 
 import '../services/prayer_alarm_engine.dart';
 import '../services/settings_store.dart';
-import 'zman_controller.dart';
+import 'horloge_controller.dart';
 
 /// Une alarme telle qu'affichée dans l'écran Alarmes.
 class AlarmeAffichee {
@@ -52,8 +52,8 @@ class AlarmsController extends Notifier<AlarmsState> {
   @override
   AlarmsState build() {
     final store = SettingsStore.instance;
-    final etatZman = ref.watch(zmanProvider);
-    final adapter = _adapterDepuis(etatZman);
+    final etatHorloge = ref.watch(horlogeProvider);
+    final adapter = _adapterDepuis(etatHorloge);
 
     final prefsMatin = store.alarme(
         SettingsStore.cleAlarmeMatin, AlarmPlanner.messageMatinDefaut);
@@ -130,10 +130,10 @@ class AlarmsController extends Notifier<AlarmsState> {
     );
   }
 
-  BiblicalCalendarAdapter _adapterDepuis(ZmanState zman) =>
+  BiblicalCalendarAdapter _adapterDepuis(HorlogeState etat) =>
       BiblicalCalendarAdapter(
-        latitude: zman.position.latitude,
-        longitude: zman.position.longitude,
+        latitude: etat.position.latitude,
+        longitude: etat.position.longitude,
       );
 
   /// Active / désactive une alarme puis reprogramme nativement (§8.4).
@@ -143,7 +143,7 @@ class AlarmsController extends Notifier<AlarmsState> {
     await store.sauvegarderAlarme(
         alarme.cle, prefs.copyWith(activee: valeur));
     await PrayerAlarmEngine.instance.reprogrammer(
-        adapter: _adapterDepuis(ref.read(zmanProvider)), forcer: true);
+        adapter: _adapterDepuis(ref.read(horlogeProvider)), forcer: true);
   }
 
   /// Change le message personnalisé d'une alarme (§8.4).
@@ -162,7 +162,7 @@ class AlarmsController extends Notifier<AlarmsState> {
     await store.sauvegarderAlarme(
         alarme.cle, prefs.copyWith(vibration: vibration, son: son));
     await PrayerAlarmEngine.instance.reprogrammer(
-        adapter: _adapterDepuis(ref.read(zmanProvider)), forcer: true);
+        adapter: _adapterDepuis(ref.read(horlogeProvider)), forcer: true);
   }
 
   /// Enregistre une notification reçue dans l'historique (§8.4).

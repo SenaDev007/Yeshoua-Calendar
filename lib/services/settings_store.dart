@@ -101,15 +101,15 @@ class SettingsStore {
   SharedPreferences get prefs => _prefs!;
 
   // ── Clés canoniques ──
-  static const clePosition = 'zman_position';
-  static const cleHorlogeAnalogique = 'zman_horloge_analogique';
-  static const cleAlarmeMatin = 'zman_alarme_matin';
-  static const cleAlarmePreparation = 'zman_alarme_preparation';
-  static const cleAlarmeSoir = 'zman_alarme_soir';
-  static const cleDerniereTransition = 'zman_derniere_transition';
-  static const cleEtatTemporel = 'zman_etat_temporel';
-  static const cleHistoriqueNotifications = 'zman_historique_notifications';
-  static const clePremierLancement = 'zman_premier_lancement';
+  static const clePosition = 'hc_position';
+  static const cleHorlogeAnalogique = 'hc_horloge_analogique';
+  static const cleAlarmeMatin = 'hc_alarme_matin';
+  static const cleAlarmePreparation = 'hc_alarme_preparation';
+  static const cleAlarmeSoir = 'hc_alarme_soir';
+  static const cleDerniereTransition = 'hc_derniere_transition';
+  static const cleEtatTemporel = 'hc_etat_temporel';
+  static const cleHistoriqueNotifications = 'hc_historique_notifications';
+  static const clePremierLancement = 'hc_premier_lancement';
 
   // ── Position (§9) ──
 

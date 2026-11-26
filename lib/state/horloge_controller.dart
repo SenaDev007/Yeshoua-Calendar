@@ -1,4 +1,4 @@
-/// ⭐ ZMAN CONTROLLER — état central de l'application (Riverpod).
+/// ⭐ Horloge Céleste CONTROLLER — état central de l'application (Riverpod).
 ///
 /// À chaque seconde :
 ///   • heure civile réelle (TimeEngine) ;
@@ -18,13 +18,13 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:zman_engine/zman_engine.dart';
+import 'package:horloge_celeste_engine/horloge_celeste_engine.dart';
 
 import '../core/app/cycle_app.dart';
 import '../services/settings_store.dart';
 import 'settings_controller.dart';
 
-class ZmanState {
+class HorlogeState {
   final DateTime maintenant;
   final PositionUtilisateur position;
   final SolarTimes? solarJour;
@@ -39,7 +39,7 @@ class ZmanState {
   final String? cleTransition;
   final bool calculSolaireIndisponible;
 
-  const ZmanState({
+  const HorlogeState({
     required this.maintenant,
     required this.position,
     this.solarJour,
@@ -55,7 +55,7 @@ class ZmanState {
     this.calculSolaireIndisponible = false,
   });
 
-  ZmanState copyWith({
+  HorlogeState copyWith({
     DateTime? maintenant,
     PositionUtilisateur? position,
     SolarTimes? solarJour,
@@ -70,7 +70,7 @@ class ZmanState {
     String? cleTransition,
     bool? calculSolaireIndisponible,
   }) =>
-      ZmanState(
+      HorlogeState(
         maintenant: maintenant ?? this.maintenant,
         position: position ?? this.position,
         solarJour: solarJour ?? this.solarJour,
@@ -89,12 +89,12 @@ class ZmanState {
       );
 }
 
-class ZmanController extends Notifier<ZmanState> {
+class HorlogeController extends Notifier<HorlogeState> {
   Timer? _timer;
   BiblicalCalendarAdapter? _adapter;
 
   @override
-  ZmanState build() {
+  HorlogeState build() {
     final position = SettingsStore.instance.position();
     _adapter = BiblicalCalendarAdapter(
       latitude: position.latitude,
@@ -227,7 +227,7 @@ class ZmanController extends Notifier<ZmanState> {
         ? Duration.zero
         : prochainCoucher.difference(maintenant);
 
-    state = ZmanState(
+    state = HorlogeState(
       maintenant: maintenant,
       position: position,
       solarJour: solarJour,

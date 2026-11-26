@@ -5,7 +5,7 @@ library;
 
 import 'package:flutter/material.dart';
 
-import 'package:zman_engine/zman_engine.dart';
+import 'package:horloge_celeste_engine/horloge_celeste_engine.dart';
 
 import '../../core/theme/app_colors.dart';
 import 'cartes.dart';

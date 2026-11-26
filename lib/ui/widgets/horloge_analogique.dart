@@ -1,7 +1,7 @@
 /// ⭐ HORLOGE ANALOGIQUE DIVINE (§6.2) — CustomPainter.
 ///
 /// Cadran circulaire élégant : graduations, aiguilles heures/minutes/
-/// secondes en OR SOLAIRE (signature Zman), indication de la veille ou
+/// secondes en OR SOLAIRE (signature Horloge Céleste), indication de la veille ou
 /// de la partie du jour en cours, date biblique en médaillon central.
 /// Animation fluide : la trotteuse balaie en continu.
 library;

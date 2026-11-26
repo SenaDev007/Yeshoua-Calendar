@@ -1,5 +1,5 @@
 /// ⭐ ÉCRAN ACCUEIL (§11) — tout ce qui compte en quelques secondes :
-///   • nom Zman, date biblique, heure civile ;
+///   • nom Horloge Céleste, date biblique, heure civile ;
 ///   • horloge + indicateur du nouveau jour + compte à rebours du coucher ;
 ///   • soleil : lever / coucher / durées ;
 ///   • période en cours (veille ou heure saisonnière) ;
@@ -8,13 +8,14 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:zman_engine/zman_engine.dart';
+import 'package:horloge_celeste_engine/horloge_celeste_engine.dart';
 
 import '../../core/config/app_config.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/models/formatters.dart';
 import '../../state/alarms_controller.dart';
-import '../../state/zman_controller.dart';
+import '../../state/horloge_controller.dart';
+import '../widgets/carte_saisonniere.dart';
 import '../widgets/cartes.dart';
 import 'parametres_screen.dart';
 
@@ -23,10 +24,10 @@ class AccueilScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final zman = ref.watch(zmanProvider);
+    final etat = ref.watch(horlogeProvider);
     final alarms = ref.watch(alarmsProvider);
-    final periode = zman.periode;
-    final jour = zman.jourBiblique;
+    final periode = etat.periode;
+    final jour = etat.jourBiblique;
 
     final enNuit = periode is NuitEnCours;
     final enJour = periode is JourEnCours;
@@ -48,32 +49,40 @@ class AccueilScreen extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       children: [
-        // ── Date biblique + heure civile ──
-        CarteZman(
+        // ── Date biblique + heure civile, habillées de l'image de saison
+        //    (même principe d'embellissement que la page web
+        //    /calendrier-biblique : image sous voile dégradé) ──
+        BandeauSaisonnier(
+          saison: jour != null
+              ? ImageSaison.depuisTrimestre(jour.trimestre)
+              : ImageSaison.approx(etat.maintenant),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
-                  const Icon(Icons.auto_awesome, size: 14, color: AppColors.orSolaire),
+                  const Icon(Icons.auto_awesome, size: 14, color: AppColors.orVif),
                   const SizedBox(width: 6),
-                  Text(
-                    jour != null
-                        ? (enNuit ? 'NOUVEAU JOUR BIBLIQUE' : 'JOUR BIBLIQUE EN COURS')
-                        : 'DATE BIBLIQUE',
-                    style: const TextStyle(
-                      color: AppColors.orFonce,
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.2,
+                  Expanded(
+                    child: Text(
+                      jour != null
+                          ? (enNuit
+                              ? 'NOUVEAU JOUR BIBLIQUE · ${ImageSaison.noms[ImageSaison.depuisTrimestre(jour.trimestre)]}'
+                              : 'JOUR BIBLIQUE EN COURS · ${ImageSaison.noms[ImageSaison.depuisTrimestre(jour.trimestre)]}')
+                          : 'DATE BIBLIQUE',
+                      style: const TextStyle(
+                        color: AppColors.orVif,
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.2,
+                      ),
                     ),
                   ),
-                  const Spacer(),
                   IconButton(
                     tooltip: 'Position et localisation',
                     visualDensity: VisualDensity.compact,
                     icon: Icon(Icons.place_outlined,
-                        size: 18, color: AppColors.bleuCiel),
+                        size: 18, color: AppColors.orVif),
                     onPressed: () => Navigator.of(context).push(
                       MaterialPageRoute(builder: (_) => const ParametresScreen()),
                     ),
@@ -85,34 +94,34 @@ class AccueilScreen extends ConsumerWidget {
                     ? '${jour.jourDuMois} ${jour.nomMois} — ${jour.nomJourSemaine}'
                     : '—',
                 style: const TextStyle(
-                  color: AppColors.ardoise,
+                  color: AppColors.blanc,
                   fontWeight: FontWeight.w800,
-                  fontSize: 25,
+                  fontSize: 26,
                 ),
               ),
               const SizedBox(height: 3),
               Text(
                 [
-                  if (jour != null) 'Jour ${jour.jourDeAnnee} de l\u2019année ${zman.anneeBiblique?.libelle ?? ''}',
+                  if (jour != null) 'Jour ${jour.jourDeAnnee} de l\u2019année ${etat.anneeBiblique?.libelle ?? ''}',
                   if (jour != null)
                     'Trimestre ${jour.trimestre} · ${BiblicalSaisons.saison(jour.trimestre)}',
                   'Année de 364 jours — 52 Shabbats',
                 ].join(' · '),
-                style: const TextStyle(
-                  color: AppColors.grisSecondaire,
+                style: TextStyle(
+                  color: AppColors.blanc.withValues(alpha: 0.80),
                   fontSize: 12,
                 ),
               ),
               const SizedBox(height: 10),
               Row(
                 children: [
-                  const Icon(Icons.watch_later_outlined,
-                      size: 15, color: AppColors.grisSecondaire),
+                  Icon(Icons.watch_later_outlined,
+                      size: 15, color: AppColors.blanc.withValues(alpha: 0.75)),
                   const SizedBox(width: 6),
                   Text(
-                    'Heure civile ${heureSecondeFormat(zman.maintenant)}',
-                    style: const TextStyle(
-                      color: AppColors.grisSecondaire,
+                    'Heure civile ${heureSecondeFormat(etat.maintenant)}',
+                    style: TextStyle(
+                      color: AppColors.blanc.withValues(alpha: 0.88),
                       fontSize: 12.5,
                       fontWeight: FontWeight.w600,
                       letterSpacing: 0.3,
@@ -127,7 +136,7 @@ class AccueilScreen extends ConsumerWidget {
 
         // ── Période en cours ──
         if (indisponible)
-          CarteZman(
+          CarteCeleste(
             bordure: AppColors.orSolaire.withValues(alpha: 0.5),
             enfant: Row(
               children: [
@@ -147,7 +156,7 @@ class AccueilScreen extends ConsumerWidget {
             nuit: true,
             nom: (periode as NuitEnCours).veille.nom,
             sousTitre: (periode).veille.sousTitre,
-            horodatageCourant: zman.maintenant,
+            horodatageCourant: etat.maintenant,
             progression: (periode).veille.progression,
             complement:
                 'Jusqu\u2019à ${heureCivilFormat((periode).veille.fin)}',
@@ -158,7 +167,7 @@ class AccueilScreen extends ConsumerWidget {
             nom: '${_ordinalHeure((periode as JourEnCours).heure.numero)} heure saisonnière',
             sousTitre:
                 '${(periode).parties[_partieActive((periode).parties)].designation} · heures ${(periode).parties[_partieActive((periode).parties)].de}–${(periode).parties[_partieActive((periode).parties)].a}',
-            horodatageCourant: zman.maintenant,
+            horodatageCourant: etat.maintenant,
             progression: (periode).heure.progression,
             complement:
                 'Jusqu\u2019à ${heureCivilFormat((periode).heure.fin)}',
@@ -166,8 +175,8 @@ class AccueilScreen extends ConsumerWidget {
         const SizedBox(height: 12),
 
         // ── Compte à rebours vers le prochain coucher ──
-        if (!zman.calculSolaireIndisponible)
-          CarteZman(
+        if (!etat.calculSolaireIndisponible)
+          CarteCeleste(
             bordure: AppColors.orSolaire.withValues(alpha: 0.45),
             enfant: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -188,7 +197,7 @@ class AccueilScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  'Coucher du soleil à ${zman.prochainCoucher != null ? heureCivilFormat(zman.prochainCoucher!) : '—'} '
+                  'Coucher du soleil à ${etat.prochainCoucher != null ? heureCivilFormat(etat.prochainCoucher!) : '—'} '
                   '— le nouveau jour biblique commence',
                   style: const TextStyle(
                     color: AppColors.grisSecondaire,
@@ -197,7 +206,7 @@ class AccueilScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 12),
                 BoitesCompteARebours(
-                  duree: zman.compteAReboursCoucher,
+                  duree: etat.compteAReboursCoucher,
                   accent: AppColors.orSolaire,
                 ),
               ],
@@ -207,28 +216,28 @@ class AccueilScreen extends ConsumerWidget {
 
         // ── Soleil ──
         CarteSoleil(
-          lever: zman.solarJour?.lever,
-          coucher: zman.solarJour?.coucher,
-          dureeJour: zman.solarJour?.dureeJourMinutes == null
+          lever: etat.solarJour?.lever,
+          coucher: etat.solarJour?.coucher,
+          dureeJour: etat.solarJour?.dureeJourMinutes == null
               ? '—'
               : dureeLisible(
-                  Duration(minutes: zman.solarJour!.dureeJourMinutes!.round())),
-          dureeNuit: zman.solarJour == null ||
-                  zman.solarSuivant == null ||
-                  !zman.solarJour!.calculable ||
-                  !zman.solarSuivant!.calculable
+                  Duration(minutes: etat.solarJour!.dureeJourMinutes!.round())),
+          dureeNuit: etat.solarJour == null ||
+                  etat.solarSuivant == null ||
+                  !etat.solarJour!.calculable ||
+                  !etat.solarSuivant!.calculable
               ? '—'
               : dureeLisible(Duration(
-                  minutes: zman.solarJour!
-                      .dureeNuitMinutes(zman.solarSuivant!)!
+                  minutes: etat.solarJour!
+                      .dureeNuitMinutes(etat.solarSuivant!)!
                       .round())),
-          disponible: zman.solarJour?.calculable ?? false,
+          disponible: etat.solarJour?.calculable ?? false,
         ),
         const SizedBox(height: 12),
 
         // ── Prochain rendez-vous spirituel ──
         if (prochainRendezVous != null && instantLePlusProche != null)
-          CarteZman(
+          CarteCeleste(
             enfant: Row(
               children: [
                 Container(
@@ -268,7 +277,7 @@ class AccueilScreen extends ConsumerWidget {
                       ),
                       Text(
                         'à ${heureCivilFormat(instantLePlusProche)} — '
-                        'dans ${dureeFormat(instantLePlusProche.difference(zman.maintenant))}',
+                        'dans ${dureeFormat(instantLePlusProche.difference(etat.maintenant))}',
                         style: const TextStyle(
                           color: AppColors.grisSecondaire,
                           fontSize: 12,

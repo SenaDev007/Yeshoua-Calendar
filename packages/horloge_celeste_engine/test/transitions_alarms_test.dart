@@ -8,7 +8,7 @@
 library;
 
 import 'package:test/test.dart';
-import 'package:zman_engine/zman_engine.dart';
+import 'package:horloge_celeste_engine/horloge_celeste_engine.dart';
 
 const latCotonou = 6.37;
 const lonCotonou = 2.42;

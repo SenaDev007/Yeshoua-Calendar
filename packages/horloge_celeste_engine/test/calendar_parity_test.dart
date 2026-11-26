@@ -12,7 +12,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:test/test.dart';
-import 'package:zman_engine/zman_engine.dart';
+import 'package:horloge_celeste_engine/horloge_celeste_engine.dart';
 
 const goldens = [
   '1900', '2025', '2026', '2027', '2028', '2032', '2100',
