@@ -142,9 +142,14 @@ fonctionnalité n'est présentée comme testée sur appareil** (§17) :
 3. test GPS réel + gestion du refus de permission ;
 4. vérification du splash/écran sur iOS (fichiers iOS à générer par
    `flutter create --platforms=ios .` dans une session Flutter complète) ;
-5. remplacer `assets/images/logo-horloge-celeste.png` (placeholder dessiné
-   selon le motif du logo : cadran, sablier, lumière) par le logo officiel
-   **Horloge Céleste** dès qu'il sera fourni.
+5. ~~remplacer le logo placeholder~~ — **fait** : le logo officiel
+   **Horloge Céleste** (médaillon céleste doré — sablier, rouleaux de la
+   Torah, fond étoilé) est intégré depuis le dépôt
+   (`favicon_horloge-celeste/`) : il habille la barre et l'écran À propos
+   (`assets/images/logo-horloge-celeste.png`) et sert de source aux icônes
+   de lanceur Android — `ic_launcher`, `ic_launcher_round` et
+   `ic_launcher_foreground` adaptatif sur les cinq densités, avec la couche
+   de fond échantillonnée sur l'anneau du médaillon (`#7E5C1E`).
 
 ## 3. Lancer le projet
 
