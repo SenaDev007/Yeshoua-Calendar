@@ -89,6 +89,7 @@ class NotificationService {
     required String titre,
     required String corps,
     required bool vibration,
+    required String son,
   }) async {
     final now = tz.TZDateTime.now(tz.local);
     var cible = tz.TZDateTime(tz.local, now.year, now.month, now.day, 5, 0);
@@ -100,7 +101,7 @@ class NotificationService {
       titre,
       corps,
       cible,
-      _details(vibration: vibration),
+      _details(vibration: vibration, son: son),
       // Répétition quotidienne à la même heure locale — le coucher du
       // soleil n'étant PAS concerné, une répétition fixe est correcte.
       matchDateTimeComponents: DateTimeComponents.time,
@@ -116,6 +117,7 @@ class NotificationService {
     required String corps,
     required DateTime instant,
     required bool vibration,
+    required String son,
     String payload = 'alarme_soir',
   }) async {
     final cible = tz.TZDateTime.from(instant, tz.local);
@@ -125,7 +127,7 @@ class NotificationService {
       titre,
       corps,
       cible,
-      _details(vibration: vibration),
+      _details(vibration: vibration, son: son),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       payload: payload,
     );
@@ -135,7 +137,11 @@ class NotificationService {
   /// désactivation) — reprogrammées ensuite par PrayerAlarmEngine.
   Future<void> annulerTout() => _plugin.cancelAll();
 
-  NotificationDetails _details({required bool vibration}) {
+  /// [son] : mode choisi par l'utilisateur pour CETTE alarme — 'shofar',
+  /// 'cloche' ou 'harpe' (ressource native res/raw/<nom>.mp3) ou 'silence'
+  /// (vibration seule : playSound désactivé).
+  NotificationDetails _details({required bool vibration, required String son}) {
+    final sonActif = son != 'silence';
     final android = AndroidNotificationDetails(
       'alarmes_celestes',
       'Alarmes spirituelles Horloge Céleste',
@@ -143,16 +149,16 @@ class NotificationService {
           'RHEMA du matin, préparation du soir et RHEMA du soir',
       importance: Importance.max,
       priority: Priority.max,
-      playSound: true,
+      playSound: sonActif,
       enableVibration: vibration,
-      // Son : ressource intégrée (shofar). Un son personnalisé choisi par
-      // l'utilisateur serait passé via RawResourceAndroidNotificationSound.
-      sound: const RawResourceAndroidNotificationSound('shofar'),
+      sound: sonActif ? RawResourceAndroidNotificationSound(son) : null,
       fullScreenIntent: true,
       category: AndroidNotificationCategory.alarm,
     );
-    const ios = DarwinNotificationDetails(
-      presentSound: true,
+    // iOS : le son personnalisé exige les fichiers embarqués nativement
+    // dans le bundle (Xcode) ; sans eux, le son par défaut est utilisé.
+    final ios = DarwinNotificationDetails(
+      presentSound: sonActif,
       presentAlert: true,
       presentBadge: true,
       interruptionLevel: InterruptionLevel.timeSensitive,

@@ -53,3 +53,5 @@ flutter:
     - assets/images/saison-automne.jpg
     - assets/images/saison-hiver.jpg
     - assets/sounds/shofar.mp3
+    - assets/sounds/cloche.mp3
+    - assets/sounds/harpe.mp3

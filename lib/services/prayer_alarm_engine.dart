@@ -93,6 +93,7 @@ class PrayerAlarmEngine {
           titre: a.nom,
           corps: a.message,
           vibration: a.vibration,
+          son: a.son,
         );
       } else {
         await NotificationService.instance.planifierOneShot(
@@ -101,6 +102,7 @@ class PrayerAlarmEngine {
           corps: a.message,
           instant: a.instant,
           vibration: a.vibration,
+          son: a.son,
           payload: a.type == TypeAlarme.rhemaSoir ? 'rhema_soir' : 'preparation_soir',
         );
       }
