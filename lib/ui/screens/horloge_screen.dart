@@ -1,0 +1,335 @@
+/// ⭐ ÉCRAN HORLOGE DIVINE (§6) — bascule numérique ⇄ analogique sans
+/// perte d'information : heure civile visible, date biblique, période
+/// en cours, compte à rebours vers le prochain changement de jour.
+library;
+
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:zman_engine/zman_engine.dart';
+
+import '../../core/theme/app_colors.dart';
+import '../../data/models/formatters.dart';
+import '../../state/settings_controller.dart';
+import '../../state/zman_controller.dart';
+import '../widgets/cartes.dart';
+import '../widgets/horloge_analogique.dart';
+
+class HorlogeScreen extends ConsumerWidget {
+  const HorlogeScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final zman = ref.watch(zmanProvider);
+    final settings = ref.watch(settingsProvider);
+    final periode = zman.periode;
+
+    final enNuit = periode is NuitEnCours;
+    final enJour = periode is JourEnCours;
+
+    final labelPeriode = periode is NuitEnCours
+        ? _numeroVeille((periode).veille.indice)
+        : periode is JourEnCours
+            ? 'Heure ${(periode).heure.numero}'
+            : 'Indisponible';
+    final sousLabel = periode is NuitEnCours
+        ? (periode).veille.sousTitre
+        : periode is JourEnCours
+            ? (periode).parties.firstWhere(
+                (p) => p.statut == StatutPeriode.enCours,
+                orElse: () => (periode).parties.first).designation
+            : '—';
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      children: [
+        // ── Bascule numérique / analogique ──
+        CarteZman(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          enfant: Row(
+            children: [
+              Expanded(
+                child: SegmentedButton<bool>(
+                  segments: const [
+                    ButtonSegment(
+                      value: false,
+                      icon: Icon(Icons.dialpad),
+                      label: Text('Numérique'),
+                    ),
+                    ButtonSegment(
+                      value: true,
+                      icon: Icon(Icons.watch),
+                      label: Text('Analogique'),
+                    ),
+                  ],
+                  selected: {settings.horlogeAnalogique},
+                  onSelectionChanged: (s) => ref
+                      .read(settingsProvider.notifier)
+                      .basculerHorlogeAnalogique(s.first),
+                  style: SegmentedButton.styleFrom(
+                    selectedBackgroundColor: AppColors.bleuCiel,
+                    selectedForegroundColor: AppColors.blanc,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // ── Horloge ──
+        CarteZman(
+          padding: const EdgeInsets.all(22),
+          enfant: settings.horlogeAnalogique
+              ? Column(
+                  children: [
+                    Center(
+                      child: HorlogeAnalogique(
+                        maintenant: zman.maintenant,
+                        labelPeriode: labelPeriode,
+                        sousLabelPeriode: sousLabel,
+                        nuit: enNuit,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    _ligneInfos(zman, enNuit),
+                  ],
+                )
+              : Column(
+                  children: [
+                    // Heure civile géante — l'heure civile reste visible (§6.1).
+                    ShaderMask(
+                      shaderCallback: (bounds) => LinearGradient(
+                        colors: [
+                          AppColors.bleuCiel,
+                          enNuit ? AppColors.orSolaire : AppColors.bleuCielFonce,
+                        ],
+                      ).createShader(bounds),
+                      child: Text(
+                        heureSecondeFormat(zman.maintenant),
+                        style: const TextStyle(
+                          fontSize: 52,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 3,
+                          color: AppColors.blanc,
+                          height: 1.1,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      dateLongueFrancais(zman.maintenant),
+                      style: const TextStyle(
+                        color: AppColors.grisSecondaire,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: enNuit
+                            ? AppColors.ardoise
+                            : AppColors.bleuCielNuit,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                            color: AppColors.orSolaire.withValues(alpha: 0.4)),
+                      ),
+                      child: Column(
+                        children: [
+                          Text(
+                            enNuit
+                                ? '${_numeroVeille((periode as NuitEnCours).veille.indice)} VEILLE'
+                                : periode is JourEnCours
+                                    ? 'HEURE SAISONNIÈRE ${(periode).heure.numero}'
+                                    : '—',
+                            style: const TextStyle(
+                              color: AppColors.orVif,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 16,
+                              letterSpacing: 1,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            enNuit
+                                ? (periode as NuitEnCours).veille.sousTitre
+                                : periode is JourEnCours
+                                    ? '${sousLabel} · ${(periode).heure.repereScripturaire ?? ''}'
+                                    : '—',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: (enNuit
+                                      ? AppColors.orVif
+                                      : AppColors.bleuCiel)
+                                  .withValues(alpha: 0.8),
+                              fontSize: 11.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    _ligneInfos(zman, enNuit),
+                  ],
+                ),
+        ),
+        const SizedBox(height: 12),
+
+        // ── Date biblique ──
+        CarteZman(
+          enfant: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.orSolaire.withValues(alpha: 0.12),
+                  border: Border.all(
+                      color: AppColors.orSolaire.withValues(alpha: 0.45)),
+                ),
+                child: const Icon(Icons.calendar_today_outlined,
+                    color: AppColors.orSolaire, size: 21),
+              ),
+              const SizedBox(width: 13),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      zman.jourBiblique != null
+                          ? '${zman.jourBiblique!.jourDuMois} ${zman.jourBiblique!.nomMois}'
+                          : '—',
+                      style: const TextStyle(
+                        color: AppColors.ardoise,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                      ),
+                    ),
+                    Text(
+                      zman.jourBiblique != null
+                          ? '${zman.jourBiblique!.nomJourSemaine} · Jour ${zman.jourBiblique!.jourDeAnnee}/364 · '
+                              'Année ${zman.anneeBiblique?.libelle ?? ''}'
+                          : '—',
+                      style: const TextStyle(
+                        color: AppColors.grisSecondaire,
+                        fontSize: 12,
+                      ),
+                    ),
+                    if (zman.jourBiblique?.estShabbat ?? false)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color:
+                                AppColors.orSolaire.withValues(alpha: 0.14),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                                color:
+                                    AppColors.orSolaire.withValues(alpha: 0.45)),
+                          ),
+                          child: const Text(
+                            'Shabbat — du coucher au coucher',
+                            style: TextStyle(
+                              color: AppColors.orFonce,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // ── Compte à rebours ──
+        if (!zman.calculSolaireIndisponible)
+          CarteZman(
+            bordure: AppColors.orSolaire.withValues(alpha: 0.45),
+            enfant: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.hourglass_bottom, size: 17, color: AppColors.orSolaire),
+                    SizedBox(width: 8),
+                    Text(
+                      'Compte à rebours du nouveau jour',
+                      style: TextStyle(
+                        color: AppColors.ardoise,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13.5,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  'Prochain coucher du soleil : ${zman.prochainCoucher != null ? heureCivilFormat(zman.prochainCoucher!) : '—'}',
+                  style: const TextStyle(
+                    color: AppColors.grisSecondaire,
+                    fontSize: 11.5,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                BoitesCompteARebours(
+                  duree: zman.compteAReboursCoucher,
+                  accent: AppColors.orSolaire,
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _ligneInfos(ZmanState zman, bool enNuit) => Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          _info('Heure civile', heureCivilFormat(zman.maintenant)),
+          _info(
+            enNuit ? 'Prochain lever' : 'Prochain coucher',
+            enNuit
+                ? (zman.solarJour?.calculable ?? false
+                    ? heureCivilFormat(zman.solarJour!.lever!)
+                    : '—')
+                : (zman.prochainCoucher != null
+                    ? heureCivilFormat(zman.prochainCoucher!)
+                    : '—'),
+          ),
+          _info(
+            'Position',
+            zman.position.libelle.length > 18
+                ? '${zman.position.libelle.substring(0, 18)}…'
+                : zman.position.libelle,
+          ),
+        ],
+      );
+
+  Widget _info(String label, String valeur) => Column(
+        children: [
+          Text(label,
+              style: const TextStyle(
+                  color: AppColors.grisSecondaire, fontSize: 10)),
+          const SizedBox(height: 2),
+          Text(
+            valeur,
+            style: const TextStyle(
+              color: AppColors.ardoise,
+              fontWeight: FontWeight.w700,
+              fontSize: 12.5,
+            ),
+          ),
+        ],
+      );
+}
+
+String _numeroVeille(IndiceVeille indice) =>
+    const ['Première', 'Deuxième', 'Troisième'][indice.index];

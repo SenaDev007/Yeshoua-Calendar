@@ -1,0 +1,51 @@
+name: yeshua_calendar
+description: >-
+  ZMAN — Le temps selon les Écritures (Yeshua Calendar).
+  Calendrier biblique de 364 jours (règles identiques au calendrier déjà
+  implémenté dans Yeshua Connect Mobile), horloge divine, trois veilles de
+  la nuit, douze heures saisonnières, alarmes spirituelles RHEMA.
+  Calculs astronomiques 100 % embarqués — fonctionne hors connexion.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.5.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # Moteur ZMAN — pur Dart, testé indépendamment (113 tests, dont parité
+  # 100 % avec le calendrier du backend Mouvement Christ Libère).
+  zman_engine:
+    path: packages/zman_engine
+
+  # Gestion d'état — mêmes versions que yeshua-connect-mobile.
+  flutter_riverpod: ^2.5.1
+
+  # Persistance légère (position, préférences d'alarmes, état temporel).
+  shared_preferences: ^2.3.2
+
+  # Localisation (§9.1) — ponctuelle, jamais permanente.
+  geolocator: ^13.0.1
+  permission_handler: ^11.3.1
+
+  # Alarmes spirituelles (§8) — notifications locales natives.
+  flutter_local_notifications: ^17.2.2
+  timezone: ^0.9.4
+  flutter_timezone: ^3.0.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/logo-zman.png
+    - assets/sounds/shofar.mp3

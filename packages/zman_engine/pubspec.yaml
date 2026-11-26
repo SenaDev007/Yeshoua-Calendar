@@ -1,0 +1,17 @@
+name: zman_engine
+description: >-
+  Moteur de temps biblique ZMAN — pur Dart, sans dépendance Flutter ni réseau.
+  Contient : SolarEngine (lever/coucher NOAA), BiblicalCalendarEngine
+  (calendrier biblique de 364 jours — règles identiques au backend du
+  Mouvement Christ Libère), BiblicalTimeEngine (trois veilles, douze heures
+  saisonnières, quatre parties du jour), BiblicalCalendarAdapter
+  (transition au coucher du soleil réel) et TimeEngine (resynchronisation).
+version: 1.0.0
+publish_to: 'none'
+
+environment:
+  sdk: '>=3.5.0 <4.0.0'
+
+dev_dependencies:
+  lints: ^4.0.0
+  test: ^1.25.0
