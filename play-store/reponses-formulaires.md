@@ -54,5 +54,8 @@ RHEMA, fermer l'app et laisser sonner — c'est le cœur de la démonstration.
 ## URL de la politique de confidentialité
 
 https://senadev007.github.io/Yeshoua-Calendar/politique-confidentialite.html
-(activer GitHub Pages : Settings → Pages → branch main / dossier root après
-push de docs/politique-confidentialite.html)
+
+✅ GitHub Pages est ACTIVÉ (source : branche `main`, dossier `/docs`,
+configuré via l'API le 27/11/2026). La page répond HTTP 200 avec la
+politique v1.1. La racine du site https://senadev007.github.io/Yeshoua-Calendar/
+est une page d'accueil qui pointe vers la politique.
