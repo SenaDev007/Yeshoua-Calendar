@@ -160,7 +160,8 @@ class EnTeteRadialCalendrier extends StatelessWidget {
             Row(
               children: [
                 _chevron(Icons.keyboard_double_arrow_left_rounded,
-                    onAnneePrecedente, 'Année précédente', grand: true),
+                    onAnneePrecedente, 'Année précédente',
+                    grand: true),
                 _chevron(Icons.chevron_left_rounded, onMoisPrecedent,
                     'Mois précédent'),
                 Expanded(
@@ -202,10 +203,11 @@ class EnTeteRadialCalendrier extends StatelessWidget {
                     ],
                   ),
                 ),
-                _chevron(Icons.chevron_right_rounded, onMoisSuivant,
-                    'Mois suivant'),
+                _chevron(
+                    Icons.chevron_right_rounded, onMoisSuivant, 'Mois suivant'),
                 _chevron(Icons.keyboard_double_arrow_right_rounded,
-                    onAnneeSuivante, 'Année suivante', grand: true),
+                    onAnneeSuivante, 'Année suivante',
+                    grand: true),
               ],
             ),
             const SizedBox(height: 10),
@@ -217,8 +219,8 @@ class EnTeteRadialCalendrier extends StatelessWidget {
                   _chipOmbre(
                       'Jour de l\u2019année', '${jourDuJour!.jourDeAnnee}/364'),
                   const SizedBox(width: 8),
-                  _chipOmbre(
-                      'Semaine', '${((jourDuJour!.jourDeAnnee - 1) ~/ 7) + 1}/52'),
+                  _chipOmbre('Semaine',
+                      '${((jourDuJour!.jourDeAnnee - 1) ~/ 7) + 1}/52'),
                 ],
                 const SizedBox(width: 8),
                 Expanded(
@@ -294,8 +296,7 @@ class EnTeteRadialCalendrier extends StatelessWidget {
           onTap: onTap,
           child: Padding(
             padding: EdgeInsets.all(grand ? 7 : 5),
-            child: Icon(icone,
-                size: grand ? 22 : 18, color: AppColors.orVif),
+            child: Icon(icone, size: grand ? 22 : 18, color: AppColors.orVif),
           ),
         ),
       ),
@@ -355,12 +356,14 @@ class GrilleMois extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final decalage = joursMois.isNotEmpty ? joursMois.first.jourDeSemaine - 1 : 0;
+    final decalage =
+        joursMois.isNotEmpty ? joursMois.first.jourDeSemaine - 1 : 0;
 
     // Cases de la grille : vides d'alignement + jours du mois + vides de fin,
     // puis découpage par lignes de 7 — même principe que la grille web.
     final cases = <Widget>[
-      for (var i = 0; i < decalage; i++) const Expanded(child: SizedBox.shrink()),
+      for (var i = 0; i < decalage; i++)
+        const Expanded(child: SizedBox.shrink()),
       for (final j in joursMois)
         Expanded(
           child: CelluleJourAnimee(
@@ -370,9 +373,7 @@ class GrilleMois extends StatelessWidget {
             onTape: onJourTape,
           ),
         ),
-      for (var i = (decalage + joursMois.length) % 7;
-          i > 0 && i < 7;
-          i++)
+      for (var i = (decalage + joursMois.length) % 7; i > 0 && i < 7; i++)
         const Expanded(child: SizedBox.shrink()),
     ];
 
@@ -418,10 +419,7 @@ class GrilleMois extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(top: 1.2),
               child: Row(
-                children: cases
-                    .skip(ligne)
-                    .take(7)
-                    .toList(growable: false),
+                children: cases.skip(ligne).take(7).toList(growable: false),
               ),
             ),
         ],
@@ -470,19 +468,21 @@ class _CelluleJourAnimeeState extends State<CelluleJourAnimee> {
     final j = widget.jour;
     final fetes = widget.fetes;
     final aFete = fetes.isNotEmpty;
-    final fete = fetes.first;
-    final couleurFete = AppColors.depuisHex(fete.couleur);
+    // ⚠️ Ne JAMAIS appeler fetes.first sans garde : la grille du mois
+    // plantait (StateError) pour tout jour sans fête — bug masqué jusque-là
+    // par la NavigationBar morte.
+    final couleurFete = aFete ? AppColors.depuisHex(fetes.first.couleur) : null;
     final estAujourdhui = _estAujourdhui;
 
     Color fond = Colors.transparent;
     if (j.estShabbat) fond = AppColors.orSolaire.withValues(alpha: 0.14);
-    if (aFete) fond = couleurFete.withValues(alpha: 0.16);
+    if (aFete) fond = couleurFete!.withValues(alpha: 0.16);
     if (widget.estSelectionne) {
       fond = AppColors.bleuCiel.withValues(alpha: 0.14);
     }
 
     final couleurNumero = aFete
-        ? couleurFete
+        ? couleurFete!
         : j.estShabbat
             ? AppColors.orFonce
             : AppColors.ardoise;
@@ -545,11 +545,11 @@ class _CelluleJourAnimeeState extends State<CelluleJourAnimee> {
                     width: 6,
                     height: 6,
                     decoration: BoxDecoration(
-                      color: couleurFete,
+                      color: couleurFete!,
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: couleurFete.withValues(alpha: 0.5),
+                          color: couleurFete!.withValues(alpha: 0.5),
                           blurRadius: 3,
                         ),
                       ],

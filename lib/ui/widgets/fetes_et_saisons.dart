@@ -29,11 +29,30 @@ void ouvrirFetesEtSaisons(BuildContext context, AnneeBiblique annee) {
           color: AppColors.ivoire,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
-        child: _ContenuFetesEtSaisons(annee: annee, scrollController: controller),
+        child:
+            _ContenuFetesEtSaisons(annee: annee, scrollController: controller),
       ),
     ),
   );
 }
+
+/// Descriptions rédigées des quatre saisons bibliques (trimestres de 91
+/// jours) — partagées par le modal « Fêtes & saisons » et la vue Trimestre
+/// de l'écran calendrier.
+const Map<int, String> descriptionsSaisons = {
+  1: 'Le Printemps (Aviv) ouvre l\u2019année biblique à l\u2019équinoxe de mars : '
+      'c\u2019est la saison de la sortie d\u2019Égypte, de la Pâque et des Pains '
+      'sans levain, puis des Prémices et de Shavouot pendant le comptage du Omer.',
+  2: 'L\u2019Été (Kayits) porte la récolte du blé et des fruits ; aucun jour de '
+      'convocation n\u2019y figure — c\u2019est la saison du silence et de la '
+      'croissance, entre Shavouot et Yom Teroua.',
+  3: 'L\u2019Automne (Stav) concentre les solennités majeures : Yom Teroua, '
+      'Yom Kippour, Souccot et Shemini Atzeret — le renouvellement de '
+      'l\u2019année civile et le retour de la présence.',
+  4: 'L\u2019Hiver (Horef) est la saison des pluies et du repos de la terre ; '
+      'les shabbats hebdomadaires y rythment seuls le temps de l\u2019alliance, '
+      'dans l\u2019attente du retour du printemps.',
+};
 
 class _ContenuFetesEtSaisons extends StatelessWidget {
   const _ContenuFetesEtSaisons({
@@ -44,24 +63,7 @@ class _ContenuFetesEtSaisons extends StatelessWidget {
   final AnneeBiblique annee;
   final ScrollController scrollController;
 
-  static const _descriptionsSaisons = {
-    1:
-        'Le Printemps (Aviv) ouvre l\u2019année biblique à l\u2019équinoxe de mars : '
-        'c\u2019est la saison de la sortie d\u2019Égypte, de la Pâque et des Pains '
-        'sans levain, puis des Prémices et de Shavouot pendant le comptage du Omer.',
-    2:
-        'L\u2019Été (Kayits) porte la récolte du blé et des fruits ; aucun jour de '
-        'convocation n\u2019y figure — c\u2019est la saison du silence et de la '
-        'croissance, entre Shavouot et Yom Teroua.',
-    3:
-        'L\u2019Automne (Stav) concentre les solennités majeures : Yom Teroua, '
-        'Yom Kippour, Souccot et Shemini Atzeret — le renouvellement de '
-        'l\u2019année civile et le retour de la présence.',
-    4:
-        'L\u2019Hiver (Horef) est la saison des pluies et du repos de la terre ; '
-        'les shabbats hebdomadaires y rythment seuls le temps de l\u2019alliance, '
-        'dans l\u2019attente du retour du printemps.',
-  };
+  static const _descriptionsSaisons = descriptionsSaisons;
 
   @override
   Widget build(BuildContext context) {
@@ -142,10 +144,12 @@ class _ContenuFetesEtSaisons extends StatelessWidget {
     final saison = SaisonBiblique.values[trimestre - 1];
     final nom = ImageSaison.noms[saison]!;
     final fetesSaison = fetes
-        .where((f) => annee.jourPourDate(f.dateGregorienne)?.trimestre == trimestre)
+        .where((f) =>
+            annee.jourPourDate(f.dateGregorienne)?.trimestre == trimestre)
         .toList();
-    final shabbatsSaison =
-        annee.jours.where((j) => j.trimestre == trimestre && j.estShabbat).length;
+    final shabbatsSaison = annee.jours
+        .where((j) => j.trimestre == trimestre && j.estShabbat)
+        .length;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
@@ -248,8 +252,10 @@ class _ContenuFetesEtSaisons extends StatelessWidget {
             spacing: 6,
             runSpacing: 5,
             children: [
-              _puce('${fete.dateBiblique} · ${dateLongueFrancais(fete.dateGregorienne)}'),
-              if (fete.dureeJours > 1) _puce('Durée : ${fete.dureeJours} jours'),
+              _puce(
+                  '${fete.dateBiblique} · ${dateLongueFrancais(fete.dateGregorienne)}'),
+              if (fete.dureeJours > 1)
+                _puce('Durée : ${fete.dureeJours} jours'),
               if (fete.travailInterdit) _puce('Travail interdit'),
             ],
           ),

@@ -10,6 +10,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/config/app_config.dart';
@@ -33,6 +34,16 @@ class HorlogeCelesteApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.theme,
       locale: const Locale('fr'),
+      // Délégations de localisation OBLIGATOIRES : sans elles,
+      // MaterialLocalizations.of(context) est null en français — la
+      // NavigationBar (onglets !), les ExpansionTile de Paramètres et les
+      // TextField lèvent une exception au build et deviennent le widget
+      // gris d'erreur en release (zones grises + navigation morte).
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       supportedLocales: const [Locale('fr')],
       home: const CoquilleNavigation(),
     );
@@ -85,25 +96,29 @@ class _CoquilleNavigationState extends ConsumerState<CoquilleNavigation> {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Horloge Céleste',
-                        style: TextStyle(
-                          color: AppColors.ardoise,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 16,
+                  Flexible(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Horloge Céleste',
+                          style: TextStyle(
+                            color: AppColors.ardoise,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 16,
+                          ),
                         ),
-                      ),
-                      Text(
-                        AppConfig.signature,
-                        style: const TextStyle(
-                          color: AppColors.grisSecondaire,
-                          fontSize: 10.5,
+                        Text(
+                          AppConfig.signature,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: AppColors.grisSecondaire,
+                            fontSize: 10.5,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ],
               )
@@ -111,7 +126,8 @@ class _CoquilleNavigationState extends ConsumerState<CoquilleNavigation> {
         actions: [
           IconButton(
             tooltip: 'Paramètres et localisation',
-            icon: const Icon(Icons.settings_outlined, color: AppColors.grisSecondaire),
+            icon: const Icon(Icons.settings_outlined,
+                color: AppColors.grisSecondaire),
             onPressed: () => Navigator.of(context).push(MaterialPageRoute(
               builder: (_) => const ParametresScreen(),
             )),

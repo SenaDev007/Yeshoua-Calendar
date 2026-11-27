@@ -144,28 +144,34 @@ class ParametresScreen extends ConsumerWidget {
                       ),
                       children: [
                         for (final ville in entry.value)
-                          ListTile(
-                            dense: true,
-                            leading: Icon(
-                              settings.position.libelle ==
-                                      '${ville.ville}, ${ville.pays}'
-                                  ? Icons.radio_button_checked
-                                  : Icons.radio_button_off,
-                              size: 18,
-                              color: AppColors.bleuCiel,
+                          // Material transparent requis : le ListTile est
+                          // posé sur un Container coloré — sans lui, une
+                          // assertion Flutter casse le rendu (zone grise).
+                          Material(
+                            type: MaterialType.transparency,
+                            child: ListTile(
+                              dense: true,
+                              leading: Icon(
+                                settings.position.libelle ==
+                                        '${ville.ville}, ${ville.pays}'
+                                    ? Icons.radio_button_checked
+                                    : Icons.radio_button_off,
+                                size: 18,
+                                color: AppColors.bleuCiel,
+                              ),
+                              title: Text(ville.ville,
+                                  style: const TextStyle(fontSize: 13)),
+                              subtitle: Text(
+                                '${ville.latitude.toStringAsFixed(2)}, ${ville.longitude.toStringAsFixed(2)}',
+                                style: const TextStyle(fontSize: 11),
+                              ),
+                              onTap: () {
+                                ref
+                                    .read(settingsProvider.notifier)
+                                    .choisirVille(ville);
+                                Navigator.of(context).pop();
+                              },
                             ),
-                            title: Text(ville.ville,
-                                style: const TextStyle(fontSize: 13)),
-                            subtitle: Text(
-                              '${ville.latitude.toStringAsFixed(2)}, ${ville.longitude.toStringAsFixed(2)}',
-                              style: const TextStyle(fontSize: 11),
-                            ),
-                            onTap: () {
-                              ref
-                                  .read(settingsProvider.notifier)
-                                  .choisirVille(ville);
-                              Navigator.of(context).pop();
-                            },
                           ),
                       ],
                     ),
@@ -176,7 +182,8 @@ class ParametresScreen extends ConsumerWidget {
           const SizedBox(height: 12),
 
           // ── Position manuelle libre ──
-          TitreSection('Position manuelle', icone: Icons.edit_location_alt_outlined),
+          TitreSection('Position manuelle',
+              icone: Icons.edit_location_alt_outlined),
           const _CartePositionManuelle(),
           const SizedBox(height: 12),
 
@@ -185,13 +192,17 @@ class ParametresScreen extends ConsumerWidget {
           CarteCeleste(
             enfant: Column(
               children: [
-                _ligne('Horaires solaires calculés',
-                    etat.calculSolaireIndisponible ? 'indisponibles (polaire)' : 'locaux, hors connexion'),
-                _ligne('Dernière transition de jour',
-                    etat.cleTransition ?? '—'),
+                _ligne(
+                    'Horaires solaires calculés',
+                    etat.calculSolaireIndisponible
+                        ? 'indisponibles (polaire)'
+                        : 'locaux, hors connexion'),
+                _ligne(
+                    'Dernière transition de jour', etat.cleTransition ?? '—'),
                 _ligne('Année biblique en cours',
                     etat.anneeBiblique?.libelle ?? '—'),
-                _ligne('Jour de l\u2019année',
+                _ligne(
+                    'Jour de l\u2019année',
                     etat.jourBiblique != null
                         ? '${etat.jourBiblique!.jourDeAnnee} / 364'
                         : '—'),
@@ -214,8 +225,8 @@ class ParametresScreen extends ConsumerWidget {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: AppColors.bleuCielNuit,
-                        border: Border.all(
-                            color: AppColors.orSolaire, width: 2.4),
+                        border:
+                            Border.all(color: AppColors.orSolaire, width: 2.4),
                       ),
                       // Logo Horloge Céleste (placeholder — logo officiel
                       // à intégrer quand il sera fourni).
@@ -280,7 +291,8 @@ class ParametresScreen extends ConsumerWidget {
           children: [
             Text(
               label,
-              style: const TextStyle(color: AppColors.grisSecondaire, fontSize: 12.5),
+              style: const TextStyle(
+                  color: AppColors.grisSecondaire, fontSize: 12.5),
             ),
             Text(
               valeur,
@@ -304,7 +316,8 @@ class _CartePositionManuelle extends ConsumerStatefulWidget {
       _CartePositionManuelleState();
 }
 
-class _CartePositionManuelleState extends ConsumerState<_CartePositionManuelle> {
+class _CartePositionManuelleState
+    extends ConsumerState<_CartePositionManuelle> {
   final _lat = TextEditingController();
   final _lon = TextEditingController();
 

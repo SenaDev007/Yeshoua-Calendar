@@ -26,13 +26,15 @@ class TitreSection extends StatelessWidget {
               Icon(icone, size: 15, color: couleur ?? AppColors.bleuCiel),
               const SizedBox(width: 6),
             ],
-            Text(
-              texte.toUpperCase(),
-              style: TextStyle(
-                color: couleur ?? AppColors.grisSecondaire,
-                fontWeight: FontWeight.w800,
-                fontSize: 11.5,
-                letterSpacing: 1.1,
+            Expanded(
+              child: Text(
+                texte.toUpperCase(),
+                style: TextStyle(
+                  color: couleur ?? AppColors.grisSecondaire,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 11.5,
+                  letterSpacing: 1.1,
+                ),
               ),
             ),
           ],
@@ -42,22 +44,29 @@ class TitreSection extends StatelessWidget {
 
 /// Carte blanche standard.
 class CarteCeleste extends StatelessWidget {
-  const CarteCeleste({super.key, required this.enfant, this.padding, this.bordure});
+  const CarteCeleste(
+      {super.key, required this.enfant, this.padding, this.bordure});
 
   final Widget enfant;
   final EdgeInsetsGeometry? padding;
   final Color? bordure;
 
   @override
-  Widget build(BuildContext context) => Container(
-        padding: padding ?? const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.blanc,
+  Widget build(BuildContext context) => Material(
+        // Material plutôt que Container décoré : les ListTile et
+        // ExpansionTile descendants (Paramètres) exigent un ancêtre Material
+        // SANS DecoratedBox coloré entre eux et lui — sinon assertion et
+        // zone grise en release.
+        color: AppColors.blanc,
+        shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
+          side: BorderSide(
               color: bordure ?? AppColors.ardoisePastel.withValues(alpha: 0.6)),
         ),
-        child: enfant,
+        child: Padding(
+          padding: padding ?? const EdgeInsets.all(16),
+          child: enfant,
+        ),
       );
 }
 
@@ -267,11 +276,14 @@ class CarteSoleil extends StatelessWidget {
                   ),
                 ),
                 const Spacer(),
-                Text(
-                  'le jour biblique commence au coucher',
-                  style: TextStyle(
-                    color: AppColors.grisSecondaire.withValues(alpha: 0.9),
-                    fontSize: 10.5,
+                Flexible(
+                  child: Text(
+                    'le jour biblique commence au coucher',
+                    textAlign: TextAlign.right,
+                    style: TextStyle(
+                      color: AppColors.grisSecondaire.withValues(alpha: 0.9),
+                      fontSize: 10.5,
+                    ),
                   ),
                 ),
               ],
@@ -284,7 +296,8 @@ class CarteSoleil extends StatelessWidget {
                         child: _ligne(Icons.wb_sunny_outlined, 'Lever',
                             heureCivilFormat(lever!)),
                       ),
-                      Container(width: 1, height: 34, color: AppColors.ardoisePastel),
+                      Container(
+                          width: 1, height: 34, color: AppColors.ardoisePastel),
                       Expanded(
                         child: _ligne(Icons.nightlight_outlined, 'Coucher',
                             heureCivilFormat(coucher!)),
@@ -306,11 +319,13 @@ class CarteSoleil extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: _pastille('Durée du jour', dureeJour, AppColors.bleuCiel),
+                  child:
+                      _pastille('Durée du jour', dureeJour, AppColors.bleuCiel),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: _pastille('Durée de la nuit', dureeNuit, AppColors.orSolaire),
+                  child: _pastille(
+                      'Durée de la nuit', dureeNuit, AppColors.orSolaire),
                 ),
               ],
             ),
@@ -352,15 +367,25 @@ class CarteSoleil extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(label,
-                style: const TextStyle(
-                    color: AppColors.grisSecondaire, fontSize: 11)),
+            // Les deux textes sont flexibles : la pastille ne déborde
+            // jamais, même sur les très petits écrans.
+            Flexible(
+              child: Text(label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      color: AppColors.grisSecondaire, fontSize: 11)),
+            ),
             const SizedBox(width: 6),
-            Text(valeur,
-                style: TextStyle(
-                    color: accent,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 13.5)),
+            Flexible(
+              child: Text(valeur,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      color: accent,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 13.5)),
+            ),
           ],
         ),
       );

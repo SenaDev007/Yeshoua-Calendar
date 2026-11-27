@@ -61,7 +61,8 @@ class AccueilScreen extends ConsumerWidget {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.auto_awesome, size: 14, color: AppColors.orVif),
+                  const Icon(Icons.auto_awesome,
+                      size: 14, color: AppColors.orVif),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
@@ -84,7 +85,8 @@ class AccueilScreen extends ConsumerWidget {
                     icon: Icon(Icons.place_outlined,
                         size: 18, color: AppColors.orVif),
                     onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const ParametresScreen()),
+                      MaterialPageRoute(
+                          builder: (_) => const ParametresScreen()),
                     ),
                   ),
                 ],
@@ -102,7 +104,8 @@ class AccueilScreen extends ConsumerWidget {
               const SizedBox(height: 3),
               Text(
                 [
-                  if (jour != null) 'Jour ${jour.jourDeAnnee} de l\u2019année ${etat.anneeBiblique?.libelle ?? ''}',
+                  if (jour != null)
+                    'Jour ${jour.jourDeAnnee} de l\u2019année ${etat.anneeBiblique?.libelle ?? ''}',
                   if (jour != null)
                     'Trimestre ${jour.trimestre} · ${BiblicalSaisons.saison(jour.trimestre)}',
                   'Année de 364 jours — 52 Shabbats',
@@ -145,7 +148,8 @@ class AccueilScreen extends ConsumerWidget {
                 Expanded(
                   child: Text(
                     (periode as PeriodeIndisponible).motif,
-                    style: const TextStyle(fontSize: 12.5, color: AppColors.ardoise),
+                    style: const TextStyle(
+                        fontSize: 12.5, color: AppColors.ardoise),
                   ),
                 ),
               ],
@@ -164,13 +168,13 @@ class AccueilScreen extends ConsumerWidget {
         else if (enJour)
           CartePeriodeActive(
             nuit: false,
-            nom: '${_ordinalHeure((periode as JourEnCours).heure.numero)} heure saisonnière',
+            nom:
+                '${_ordinalHeure((periode as JourEnCours).heure.numero)} heure saisonnière',
             sousTitre:
                 '${(periode).parties[_partieActive((periode).parties)].designation} · heures ${(periode).parties[_partieActive((periode).parties)].de}–${(periode).parties[_partieActive((periode).parties)].a}',
             horodatageCourant: etat.maintenant,
             progression: (periode).heure.progression,
-            complement:
-                'Jusqu\u2019à ${heureCivilFormat((periode).heure.fin)}',
+            complement: 'Jusqu\u2019à ${heureCivilFormat((periode).heure.fin)}',
           ),
         const SizedBox(height: 12),
 
@@ -183,14 +187,17 @@ class AccueilScreen extends ConsumerWidget {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.timelapse, size: 17, color: AppColors.orSolaire),
+                    const Icon(Icons.timelapse,
+                        size: 17, color: AppColors.orSolaire),
                     const SizedBox(width: 8),
-                    const Text(
-                      'Prochain changement de jour',
-                      style: TextStyle(
-                        color: AppColors.ardoise,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 13.5,
+                    const Flexible(
+                      child: Text(
+                        'Prochain changement de jour',
+                        style: TextStyle(
+                          color: AppColors.ardoise,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 13.5,
+                        ),
                       ),
                     ),
                   ],
@@ -300,15 +307,30 @@ class AccueilScreen extends ConsumerWidget {
     return 0;
   }
 
-  String _ordinalHeure(int n) =>
-      const ['', 'Première', 'Deuxième', 'Troisième', 'Quatrième', 'Cinquième',
-        'Sixième', 'Septième', 'Huitième', 'Neuvième', 'Dixième',
-        'Onzième', 'Douzième'][n];
+  String _ordinalHeure(int n) => const [
+        '',
+        'Première',
+        'Deuxième',
+        'Troisième',
+        'Quatrième',
+        'Cinquième',
+        'Sixième',
+        'Septième',
+        'Huitième',
+        'Neuvième',
+        'Dixième',
+        'Onzième',
+        'Douzième'
+      ][n];
 }
 
 /// Noms des saisons bibliques (trimestres).
 class BiblicalSaisons {
   BiblicalSaisons._();
-  static String saison(int trimestre) =>
-      const ['Printemps', 'Été', 'Automne', 'Hiver'][(trimestre - 1).clamp(0, 3)];
+  static String saison(int trimestre) => const [
+        'Printemps',
+        'Été',
+        'Automne',
+        'Hiver'
+      ][(trimestre - 1).clamp(0, 3)];
 }
