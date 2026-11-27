@@ -25,7 +25,7 @@ if (keystorePropertiesFile.exists()) {
 android {
     namespace "com.yehiortech.horlogeceleste"
     // SDK 36 requis par geolocator_android et shared_preferences_android
-    // (checkReleaseAarMetadata) — rétrocompatible avec targetSdk 35.
+    // (checkReleaseAarMetadata) — aligné avec targetSdk 36 (exigence Play, API 36).
     compileSdk 36
 
     ndkVersion = flutter.ndkVersion
@@ -45,7 +45,7 @@ android {
     defaultConfig {
         applicationId "com.yehiortech.horlogeceleste"
         minSdk 24
-        targetSdk 35
+        targetSdk 36
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
 
