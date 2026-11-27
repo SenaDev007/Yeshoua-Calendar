@@ -1,0 +1,18 @@
+.parashot-section {
+  background: radial-gradient(circle, #1b74b6, #0f4e81, #06264c);
+  color: white;
+}
+
+.parashah-vayigash {
+  color: #FFD700;
+  text-align: center;
+}
+
+.parashot-keyword {
+  font-weight: bold;
+  text-decoration: underline;
+}
+
+.parashot-period {
+  text-align: center;
+}

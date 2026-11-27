@@ -1,0 +1,46 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Dégradé radial moderne pour les en-têtes */
+.bg-gradient-radial-header {
+  background: radial-gradient(circle, #1b74b6, #0f4e81, #06264c);
+}
+
+/* Dégradé principal (comme le header) */
+.bg-gradient-primary {
+  background: linear-gradient(to right, #1a2b4a, #3b5b9d 45%, #1a2b4a);
+}
+
+/* Dégradé léger pour les sections */
+.bg-gradient-section {
+  background: linear-gradient(to right, #f0f4f8, #e3e9f2 45%, #f0f4f8);
+}
+
+/* Dégradé pour les en-têtes de section */
+.bg-gradient-header {
+  background: linear-gradient(to right, #e3e9f2, #d1d9e6 45%, #e3e9f2);
+}
+
+/* Force la direction du texte de gauche à droite */
+.ltr {
+  direction: ltr;
+  unicode-bidi: bidi-override;
+}
+
+/* Arrière-plans saisonniers */
+.bg-printemps {
+  background-image: url('/images/Printemps.jpg');
+}
+
+.bg-ete {
+  background-image: url('/images/Eté.jpg');
+}
+
+.bg-automne {
+  background-image: url('/images/Automne.jpg');
+}
+
+.bg-hiver {
+  background-image: url('/images/Hiver.jpg');
+}
