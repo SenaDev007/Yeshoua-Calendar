@@ -22,6 +22,7 @@ import 'ui/screens/alarmes_screen.dart';
 import 'ui/screens/calendrier_screen.dart';
 import 'ui/screens/horloge_screen.dart';
 import 'ui/screens/parametres_screen.dart';
+import 'ui/screens/splash_screen.dart';
 import 'ui/screens/temps_biblique_screen.dart';
 
 class HorlogeCelesteApp extends ConsumerWidget {
@@ -45,7 +46,10 @@ class HorlogeCelesteApp extends ConsumerWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: const [Locale('fr')],
-      home: const CoquilleNavigation(),
+      // Loader animé : le médaillon vivant (sablier, comète, éclat) accueille
+      // l'utilisateur à l'allumage, puis fondu vers la coquille (§10.3).
+      home: const SplashScreen(),
+      routes: {'/accueil': (_) => const CoquilleNavigation()},
     );
   }
 }

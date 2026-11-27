@@ -48,6 +48,7 @@ flutter:
 
   assets:
     - assets/images/logo-horloge-celeste.png
+    - assets/images/logo-horloge-celeste-anime.webp
     - assets/images/saison-printemps.jpg
     - assets/images/saison-ete.jpg
     - assets/images/saison-automne.jpg

@@ -131,6 +131,26 @@ imports résolvent, les 5 écrans sont montés dans la coquille de navigation,
 toutes les classes de widgets utilisées sont définies, tous les assets
 référencés existent et aucune couleur hors charte n'est utilisée.
 
+### PHASE 9 — Loader animé (écran de démarrage)
+- **Logo animé du médaillon** généré depuis le logo officiel
+  (`favicon_horloge-celeste/android-chrome-512x512.png`) — boucle de 2,5 s
+  (50 images, 50 ms) aux éléments cohérents :
+  1. **sablier** : le sable du haut s'écoule (surface qui descend, filet de
+     grains animé) pendant que le tas du bas grossit sous le filet ;
+  2. **comète dorée** parcourant la lunette graduée (1 tour par boucle) ;
+  3. **lueur centrale** pulsée, synchronisée avec l'écoulement ;
+  4. **étincelles** séquencées sur les rouleaux et les ornements ;
+  5. **retournement** : à la fin du cycle, un éclair doré masque la remise à
+     zéro — la boucle est parfaitement continue.
+- Fichiers : `logo-horloge-celeste-anime.gif` (512 px, fond nuit intégré),
+  `logo-horloge-celeste-anime-transparent.gif` (alpha) et le WebP animé
+  **intégré à l'application** (`assets/images/logo-horloge-celeste-anime.webp`,
+  384 px, alpha complet, 1,6 Mo — lu nativement par Flutter).
+- `SplashScreen` (`lib/ui/screens/splash_screen.dart`) : fond nuit `#0F2142`,
+  halo doré, logo animé 228 px, titre + signature, indicateur de chargement ;
+  après 3,3 s (une boucle complète + une marge), fondu de 600 ms vers la
+  coquille de navigation (`/accueil`). Les 5 écrans sont inchangés.
+
 ## 2. Ce qui reste à faire sur appareil réel
 
 Le sandbox n'exécute ni Flutter ni un émulateur Android — **aucune
