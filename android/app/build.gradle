@@ -23,7 +23,7 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace "com.yeshua.horlogeceleste"
+    namespace "com.yehiortech.horlogeceleste"
     compileSdk 35
 
     ndkVersion = flutter.ndkVersion
@@ -38,7 +38,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.yeshua.horlogeceleste"
+        applicationId "com.yehiortech.horlogeceleste"
         minSdk 24
         targetSdk 35
         versionCode flutterVersionCode.toInteger()

@@ -1,4 +1,4 @@
-package com.yeshua.horlogeceleste
+package com.yehiortech.horlogeceleste
 
 import io.flutter.embedding.android.FlutterActivity
 

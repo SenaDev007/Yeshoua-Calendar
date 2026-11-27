@@ -1,6 +1,6 @@
 # Fiche Google Play Store — Horloge Céleste
 
-Application : Horloge Céleste · Package : com.yeshua.horlogeceleste · Version 1.0.0 (code 1)
+Application : Horloge Céleste · Package : com.yehiortech.horlogeceleste · Version 1.0.0 (code 1)
 
 ## Titre de l'application (30 caractères max)
 
@@ -12,44 +12,44 @@ Calendrier biblique de 364 jours, veilles, fêtes et alarmes RHEMA chaque jour.
 
 ## Description complète
 
-Horloge Céleste replace votre journée à la lumière du calendrier biblique de
-364 jours : quatre saisons de 91 jours, les jours comptés depuis le début du
-cycle, les fêtes bibliques, les veilles de la nuit et les heures de prière —
-le tout dans une application française, sobre et lumineuse.
+Horloge Céleste replace votre journée à la lumière du temps biblique : le jour qui commence au coucher du soleil, les veilles de la nuit, le calendrier de 364 jours et les heures de prière — le tout dans une application française, sobre et lumineuse, sans publicité.
+
+L'HORLOGE BIBLIQUE
+• Un grand cadran qui montre la part du jour et la part de la nuit, avec le lever et le coucher du soleil calculés à votre position (localisation optionnelle) ;
+• Les trois veilles bibliques — veille du soir, veille de minuit, veille de l'aube — aux heures réelles de votre région ;
+• L'heure biblique du moment et les heures de prière du jour repérées sur le cadran ;
+• La date du calendrier civil et la progression du jour biblique en cours.
 
 CALENDRIER DE 364 JOURS
 • Le jour biblique en cours, sa saison et sa position dans le cycle annuel ;
+• Quatre saisons de 91 jours, ancrées sur l'équinoxe de mars, comme aux Écritures ;
 • Les sabbats hebdomadaires et mensuels, mis en évidence dans la vue du mois ;
 • Les grandes fêtes bibliques signalées sur l'année ;
 • Le décompte « Jour du Seigneur » qui rapproche chaque jour du septième.
 
-AUJOURD'HUI
-• Un grand cadran qui montre la part du jour et la part de la nuit, avec
-  lever et coucher du soleil selon votre position (localisation optionnelle) ;
-• Les trois veilles bibliques — veille du soir, veille de minuit, veille de
-  l'aube — aux heures de votre région ;
-• La date du calendrier civil et la progression du jour biblique.
+TROIS ALARMES RHEMA
+• RHEMA du matin à 5 heures : le rendez-vous de prière du commencement du jour civil ;
+• Préparation du soir, cinq minutes avant le coucher du soleil réel ;
+• RHEMA du soir au coucher du soleil : l'entrée du nouveau jour biblique ;
+• Alarmes exactes Android : elles sonnent même application fermée ou écran verrouillé, et respectent les modes d'économie d'énergie ;
+• Activation et message personnalisables pour chaque alarme ;
+• L'historique des dernières notifications reçues est conservé et consultable.
 
-ALARMES RHEMA
-• Une sonnerie à chaque veille et aux heures posées (aube, matin, neuvième
-  heure, soir, minuit), même application fermée ou écran verrouillé ;
-• Alarmes exactes Android, respectueuses des modes économie d'énergie ;
-• Activation individuelle de chaque rappel.
+SONNERIES AU CHOIX
+• Shofar, cloche ou harpe pour chaque alarme, ou silence avec vibration seule ;
+• Le mode choisi est enregistré et reste en place après le redémarrage du téléphone.
 
 MOIS ET ANNÉES
 • La grille du mois biblique avec sabbats et fêtes en couleur ;
 • Les frises saisonnières des quatre saisons du calendrier de 364 jours ;
-• Le repérage rapide des jours de célébration.
+• Le repérage rapide des jours de célébration, saison par saison.
 
 PRIVÉE PAR CONCEPTION
 • Aucune donnée personnelle collectée, aucune publicité, aucun traçeur ;
-• La localisation, si vous l'acceptez, est calculée sur votre téléphone et
-  ne quitte jamais celui-ci ;
-• Fonctionne hors connexion une fois installée.
+• La localisation, si vous l'acceptez, est calculée sur votre téléphone et ne quitte jamais celui-ci ;
+• Aucun compte à créer : l'application fonctionne dès l'ouverture, hors connexion.
 
-Horloge Céleste est gratuite. Elle est destinée à tous ceux qui veulent
-prier aux heures bibliques, suivre le calendrier de 364 jours et garder les
-fêtes — enfants d'Israël, disciples de Yeshoua et curieux des Écritures.
+Horloge Céleste est gratuite. Elle est destinée à tous ceux qui veulent prier aux heures bibliques, suivre le calendrier de 364 jours et garder les fêtes — enfants d'Israël, disciples de Yeshoua et curieux des Écritures.
 
 ## Champs techniques
 
