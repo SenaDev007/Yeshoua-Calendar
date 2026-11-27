@@ -105,6 +105,13 @@ class AlarmPlanner {
   static const int idShofarBase = 100;
   static const int idRappelsBase = 400;
 
+  /// Alarmes du soir ÉTENDUES aux jours suivants (30 = préparation,
+  /// 50 = RHEMA du soir) : le coucher du soleil variant chaque jour, une
+  /// notification séparée par jour garantit la sonnerie même si
+  /// l'application reste fermée plusieurs jours.
+  static const int idPreparationSoirJoursBase = 30;
+  static const int idRhemaSoirJoursBase = 50;
+
   static const Map<TypeAlarme, int> idsNotification = {
     TypeAlarme.rhemaMatin: idRhemaMatin,
     TypeAlarme.preparationSoir: idPreparationSoir,
@@ -141,12 +148,34 @@ class AlarmPlanner {
   /// sont ancrées sur le coucher du soleil RÉEL (adapté à la position) ;
   /// si le calcul solaire est impossible (région polaire), elles sont
   /// simplement omises — JAMAIS remplacées par une heure fictive (§9.4).
+  ///
+  /// [horizonJours] : nombre de JOURS couverts pour les alarmes du soir
+  /// (1 par défaut — compatibilité exacte du comportement historique).
+  /// Avec 7, chaque coucher des 7 prochains jours reçoit SA notification
+  /// (identifiants distincts) : les sonneries restent armées même si
+  /// l'application n'est pas rouverte entre-temps.
   static List<AlarmePlanifiee> planifier({
     required BiblicalCalendarAdapter adapter,
     required List<AlarmeSpirituelle> alarmes,
     required DateTime maintenant,
+    int horizonJours = 1,
   }) {
     final resultats = <AlarmePlanifiee>[];
+
+    // Coucher du soleil du [jour]ème jour à venir (0 = prochain après
+    // maintenant) — dédoublonné par jour civil pour ne jamais sonner deux
+    // fois le même coucher.
+    DateTime? coucherDuJour(int jour, Set<DateTime> dejaVus) {
+      final coucher = jour == 0
+          ? adapter.prochainCoucher(maintenant)
+          : adapter.prochainCoucher(DateTime(maintenant.year,
+              maintenant.month, maintenant.day).add(Duration(days: jour)));
+      if (coucher == null) return null;
+      final cle = DateTime(coucher.year, coucher.month, coucher.day);
+      if (dejaVus.contains(cle)) return null;
+      dejaVus.add(cle);
+      return coucher;
+    }
 
     for (final alarme in alarmes) {
       if (!alarme.activee) continue;
@@ -165,26 +194,31 @@ class AlarmPlanner {
           ));
           break;
         case TypeAlarme.preparationSoir:
-          final coucher = adapter.prochainCoucher(maintenant);
-          if (coucher != null) {
-            final instant = coucher
-                .subtract(Duration(minutes: alarme.minutesAvant));
-            if (instant.isAfter(maintenant)) {
-              resultats.add(AlarmePlanifiee(
-                type: alarme.type,
-                nom: alarme.nom,
-                instant: instant,
-                message: alarme.message,
-                vibration: alarme.vibration,
-                son: alarme.son,
-                id: idsNotification[alarme.type]!,
-              ));
-            }
+          final dejaVus = <DateTime>{};
+          for (var jour = 0; jour < horizonJours; jour++) {
+            final coucher = coucherDuJour(jour, dejaVus);
+            if (coucher == null) continue;
+            final instant =
+                coucher.subtract(Duration(minutes: alarme.minutesAvant));
+            if (!instant.isAfter(maintenant)) continue;
+            resultats.add(AlarmePlanifiee(
+              type: alarme.type,
+              nom: alarme.nom,
+              instant: instant,
+              message: alarme.message,
+              vibration: alarme.vibration,
+              son: alarme.son,
+              id: jour == 0
+                  ? idPreparationSoir
+                  : idPreparationSoirJoursBase + jour,
+            ));
           }
           break;
         case TypeAlarme.rhemaSoir:
-          final coucher = adapter.prochainCoucher(maintenant);
-          if (coucher != null && coucher.isAfter(maintenant)) {
+          final dejaVus = <DateTime>{};
+          for (var jour = 0; jour < horizonJours; jour++) {
+            final coucher = coucherDuJour(jour, dejaVus);
+            if (coucher == null || !coucher.isAfter(maintenant)) continue;
             resultats.add(AlarmePlanifiee(
               type: alarme.type,
               nom: alarme.nom,
@@ -192,7 +226,7 @@ class AlarmPlanner {
               message: alarme.message,
               vibration: alarme.vibration,
               son: alarme.son,
-              id: idsNotification[alarme.type]!,
+              id: jour == 0 ? idRhemaSoir : idRhemaSoirJoursBase + jour,
             ));
           }
           break;

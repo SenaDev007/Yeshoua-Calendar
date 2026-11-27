@@ -5,6 +5,8 @@
 /// et déclenche la reprogrammation native à chaque changement.
 library;
 
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:horloge_celeste_engine/horloge_celeste_engine.dart';
 
@@ -52,15 +54,21 @@ class AlarmsController extends Notifier<AlarmsState> {
   @override
   AlarmsState build() {
     final store = SettingsStore.instance;
-    final etatHorloge = ref.watch(horlogeProvider);
-    final adapter = _adapterDepuis(etatHorloge);
+    // RECONSTRUCTION CIBLÉE : uniquement au changement de JOUR biblique
+    // (coucher réel — le bon moment pour replanifier les couchers suivants)
+    // ou de POSITION. Plus de reconstruction à chaque seconde : les appels
+    // natifs de planification ne sont plus déclenchés en rafale.
+    final (position, _) = ref.watch(horlogeProvider
+        .select((etat) => (etat.position, etat.jourBiblique?.jourDeAnnee)));
+    final adapter = BiblicalCalendarAdapter(
+        latitude: position.latitude, longitude: position.longitude);
 
     final prefsMatin = store.alarme(
         SettingsStore.cleAlarmeMatin, AlarmPlanner.messageMatinDefaut);
     final prefsPreparation = store.alarme(SettingsStore.cleAlarmePreparation,
         AlarmPlanner.messagePreparationDefaut);
-    final prefsSoir =
-        store.alarme(SettingsStore.cleAlarmeSoir, AlarmPlanner.messageSoirDefaut);
+    final prefsSoir = store.alarme(
+        SettingsStore.cleAlarmeSoir, AlarmPlanner.messageSoirDefaut);
 
     final maintenant = DateTime.now();
     final plan = AlarmPlanner.planifier(
@@ -125,7 +133,8 @@ class AlarmsController extends Notifier<AlarmsState> {
     ];
 
     // Reprogrammation native si nécessaire (démarrage / changement).
-    PrayerAlarmEngine.instance.reprogrammer(adapter: adapter);
+    // Sérialisée par PrayerAlarmEngine (voir reprogrammer).
+    unawaited(PrayerAlarmEngine.instance.reprogrammer(adapter: adapter));
 
     return AlarmsState(
       alarmes: alarmes,
@@ -133,20 +142,21 @@ class AlarmsController extends Notifier<AlarmsState> {
     );
   }
 
-  BiblicalCalendarAdapter _adapterDepuis(HorlogeState etat) =>
+  BiblicalCalendarAdapter _adapterDepuisPosition(
+          PositionUtilisateur position) =>
       BiblicalCalendarAdapter(
-        latitude: etat.position.latitude,
-        longitude: etat.position.longitude,
+        latitude: position.latitude,
+        longitude: position.longitude,
       );
 
   /// Active / désactive une alarme puis reprogramme nativement (§8.4).
   Future<void> basculer(AlarmeAffichee alarme, bool valeur) async {
     final store = SettingsStore.instance;
     final prefs = store.alarme(alarme.cle, alarme.prefs.message);
-    await store.sauvegarderAlarme(
-        alarme.cle, prefs.copyWith(activee: valeur));
+    await store.sauvegarderAlarme(alarme.cle, prefs.copyWith(activee: valeur));
     await PrayerAlarmEngine.instance.reprogrammer(
-        adapter: _adapterDepuis(ref.read(horlogeProvider)), forcer: true);
+        adapter: _adapterDepuisPosition(ref.read(horlogeProvider).position),
+        forcer: true);
   }
 
   /// Change le message personnalisé d'une alarme (§8.4), puis reprogramme
@@ -154,21 +164,23 @@ class AlarmsController extends Notifier<AlarmsState> {
   Future<void> changerMessage(AlarmeAffichee alarme, String message) async {
     final store = SettingsStore.instance;
     final prefs = store.alarme(alarme.cle, alarme.prefs.message);
-    await store.sauvegarderAlarme(
-        alarme.cle, prefs.copyWith(message: message));
+    await store.sauvegarderAlarme(alarme.cle, prefs.copyWith(message: message));
     await PrayerAlarmEngine.instance.reprogrammer(
-        adapter: _adapterDepuis(ref.read(horlogeProvider)), forcer: true);
+        adapter: _adapterDepuisPosition(ref.read(horlogeProvider).position),
+        forcer: true);
   }
 
   /// Change l'HEURE d'une alarme à heure fixe (RHEMA du matin — §8.4),
   /// puis reprogramme immédiatement.
-  Future<void> changerHeure(AlarmeAffichee alarme, int heure, int minute) async {
+  Future<void> changerHeure(
+      AlarmeAffichee alarme, int heure, int minute) async {
     final store = SettingsStore.instance;
     final prefs = store.alarme(alarme.cle, alarme.prefs.message);
     await store.sauvegarderAlarme(
         alarme.cle, prefs.copyWith(heure: heure, minute: minute));
     await PrayerAlarmEngine.instance.reprogrammer(
-        adapter: _adapterDepuis(ref.read(horlogeProvider)), forcer: true);
+        adapter: _adapterDepuisPosition(ref.read(horlogeProvider).position),
+        forcer: true);
   }
 
   /// Change le décalage en minutes avant le coucher réel (Préparation du
@@ -179,7 +191,8 @@ class AlarmsController extends Notifier<AlarmsState> {
     await store.sauvegarderAlarme(
         alarme.cle, prefs.copyWith(minutesAvant: minutes));
     await PrayerAlarmEngine.instance.reprogrammer(
-        adapter: _adapterDepuis(ref.read(horlogeProvider)), forcer: true);
+        adapter: _adapterDepuisPosition(ref.read(horlogeProvider).position),
+        forcer: true);
   }
 
   /// Change la vibration / le son d'une alarme (§8.4).
@@ -190,7 +203,8 @@ class AlarmsController extends Notifier<AlarmsState> {
     await store.sauvegarderAlarme(
         alarme.cle, prefs.copyWith(vibration: vibration, son: son));
     await PrayerAlarmEngine.instance.reprogrammer(
-        adapter: _adapterDepuis(ref.read(horlogeProvider)), forcer: true);
+        adapter: _adapterDepuisPosition(ref.read(horlogeProvider).position),
+        forcer: true);
   }
 
   /// Enregistre une notification reçue dans l'historique (§8.4).

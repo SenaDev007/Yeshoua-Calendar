@@ -20,14 +20,41 @@ class PrayerAlarmEngine {
 
   DateTime? _derniereProgrammation;
   String? _dernierePositionUtilisee;
+  Future<void>? _reprogrammationEnCours;
 
   /// Reprogramme les alarmes ACTIVÉES à partir de la position et du moteur.
   ///
   /// [forcer] : ignore les conditions de fraîcheur (changement de position,
   /// démarrage, rupture temporelle).
+  ///
+  /// SÉCURISATION : les appels sont sérialisés — l'écoute du contrôleur
+  /// d'alarmes pouvant déclencher cette méthode très fréquemment, deux
+  /// exécutions simultanées s'annuleraient l'une l'autre en plein vol
+  /// (cancelAll pendant les zonedSchedule). Les appels non forcés pendant
+  /// une exécution en cours rejoignent simplement celle-ci.
   Future<void> reprogrammer({
     required BiblicalCalendarAdapter adapter,
     bool forcer = false,
+  }) async {
+    final enCours = _reprogrammationEnCours;
+    if (enCours != null) {
+      if (!forcer) return enCours;
+      await enCours;
+    }
+    final execution = _reprogrammerInterne(adapter: adapter, forcer: forcer);
+    _reprogrammationEnCours = execution;
+    try {
+      await execution;
+    } finally {
+      if (identical(_reprogrammationEnCours, execution)) {
+        _reprogrammationEnCours = null;
+      }
+    }
+  }
+
+  Future<void> _reprogrammerInterne({
+    required BiblicalCalendarAdapter adapter,
+    required bool forcer,
   }) async {
     final store = SettingsStore.instance;
     final position = store.position();
@@ -65,7 +92,8 @@ class PrayerAlarmEngine {
       ),
       AlarmeSpirituelle(
         type: TypeAlarme.preparationSoir,
-        nom: 'Préparation du soir — ${prefs.preparation.minutesAvant} min avant le coucher',
+        nom:
+            'Préparation du soir — ${prefs.preparation.minutesAvant} min avant le coucher',
         message: prefs.preparation.message.isEmpty
             ? AlarmPlanner.messagePreparationDefaut
             : prefs.preparation.message,
@@ -95,31 +123,44 @@ class PrayerAlarmEngine {
       adapter: adapter,
       alarmes: alarmes,
       maintenant: maintenant,
+      // HORIZON 7 JOURS (§8.4) : chaque coucher des 7 prochains jours
+      // reçoit SA notification — la sonnerie reste armée même si
+      // l'application n'est pas rouverte entre-temps. Le RHEMA du matin,
+      // lui, se répète quotidiennement (matchDateTimeComponents).
+      horizonJours: 7,
     );
 
     // Reprise propre puis reprogrammation complète (évite les doublons).
     await NotificationService.instance.annulerTout();
     for (final a in plan) {
-      if (a.type == TypeAlarme.rhemaMatin) {
-        await NotificationService.instance.planifierRhemaMatin(
-          id: a.id,
-          titre: a.nom,
-          corps: a.message,
-          vibration: a.vibration,
-          son: a.son,
-          heure: prefs.matin.heure,
-          minute: prefs.matin.minute,
-        );
-      } else {
-        await NotificationService.instance.planifierOneShot(
-          id: a.id,
-          titre: a.nom,
-          corps: a.message,
-          instant: a.instant,
-          vibration: a.vibration,
-          son: a.son,
-          payload: a.type == TypeAlarme.rhemaSoir ? 'rhema_soir' : 'preparation_soir',
-        );
+      try {
+        if (a.type == TypeAlarme.rhemaMatin) {
+          await NotificationService.instance.planifierRhemaMatin(
+            id: a.id,
+            titre: a.nom,
+            corps: a.message,
+            vibration: a.vibration,
+            son: a.son,
+            heure: prefs.matin.heure,
+            minute: prefs.matin.minute,
+          );
+        } else {
+          await NotificationService.instance.planifierOneShot(
+            id: a.id,
+            titre: a.nom,
+            corps: a.message,
+            instant: a.instant,
+            vibration: a.vibration,
+            son: a.son,
+            payload: a.type == TypeAlarme.rhemaSoir
+                ? 'rhema_soir'
+                : 'preparation_soir',
+          );
+        }
+      } catch (_) {
+        // Une alarme qui échoue ne doit jamais bloquer les autres — la
+        // reprogrammation suivante (démarrage, changement de jour,
+        // changement de position) retente.
       }
     }
 
@@ -135,15 +176,19 @@ class PrayerAlarmEngine {
         son: 'shofar',
       );
       for (final s in shofars) {
-        await NotificationService.instance.planifierOneShot(
-          id: s.id,
-          titre: s.titre,
-          corps: s.corps,
-          instant: s.instant,
-          vibration: s.vibration,
-          son: s.son,
-          payload: s.payload,
-        );
+        try {
+          await NotificationService.instance.planifierOneShot(
+            id: s.id,
+            titre: s.titre,
+            corps: s.corps,
+            instant: s.instant,
+            vibration: s.vibration,
+            son: s.son,
+            payload: s.payload,
+          );
+        } catch (_) {
+          // Sonnerie suivante.
+        }
       }
     } catch (_) {
       // La planification des shofars ne doit jamais bloquer les RHEMA.
@@ -155,8 +200,7 @@ class PrayerAlarmEngine {
 
   /// Historique (§8.4) : l'app enregistre chaque notification reçue.
   Future<void> enregistrerNotificationRecue(String titre, String corps) =>
-      SettingsStore.instance
-          .ajouterHistorique(titre, corps, DateTime.now());
+      SettingsStore.instance.ajouterHistorique(titre, corps, DateTime.now());
 
   _AlarmesPrefs _prefsDepuisStore(SettingsStore store) => _AlarmesPrefs(
         matin: store.alarme(

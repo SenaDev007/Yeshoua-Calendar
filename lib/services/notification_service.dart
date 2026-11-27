@@ -30,7 +30,9 @@ class NotificationService {
   bool _initialise = false;
 
   /// Callback quand l'utilisateur touche une notification (ouverture d'app).
-  void Function(String payload)? onTapNotification;
+  /// [titre] et [corps] alimentent l'historique local (§8.4).
+  void Function(String payload, String? titre, String? corps)?
+      onTapNotification;
 
   Future<void> initialiser() async {
     if (_initialise) return;
@@ -51,15 +53,28 @@ class NotificationService {
     await _plugin.initialize(
       const InitializationSettings(android: android, iOS: ios),
       onDidReceiveNotificationResponse: (reponse) {
-        onTapNotification?.call(reponse.payload ?? '');
+        // NotificationResponse (v17) n'expose pas titre/corps : un libellé
+        // stable est déduit du payload pour l'historique local (§8.4).
+        final cle = reponse.payload ?? '';
+        const libelles = {
+          'rhema_matin': 'RHEMA du matin',
+          'preparation_soir': 'Préparation du soir',
+          'rhema_soir': 'RHEMA du soir',
+          'shofar_shabbat': 'Shofar — entrée du Shabbat',
+          'shofar_fete': 'Shofar — entrée de fête',
+          'rappel_j7': 'Rappel de fête — J-7',
+          'rappel_j3': 'Rappel de fête — J-3',
+          'rappel_j24h': 'Rappel de fête — 24 h',
+        };
+        onTapNotification?.call(
+            cle, libelles[cle] ?? (cle.isEmpty ? null : cle), null);
       },
     );
 
     // Permissions Android 13+ (canal d'alarme) — silencieuses si déjà accordées.
     if (defaultTargetPlatform == TargetPlatform.android) {
-      final androidImpl =
-          _plugin.resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>();
+      final androidImpl = _plugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
       await androidImpl?.requestNotificationsPermission();
       // Alarmes EXACTES Android 12+ : demandées si nécessaires ; le repli
       // inexact reste fonctionnel (notification dans la fenêtre système).

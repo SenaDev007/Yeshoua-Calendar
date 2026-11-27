@@ -101,7 +101,8 @@ class AlarmesScreen extends ConsumerWidget {
                       Text(
                         '${h['instant'] != null ? _formatInstant(h['instant'] as String) : ''} — ${h['corps'] ?? ''}',
                         style: TextStyle(
-                          color: AppColors.grisSecondaire.withValues(alpha: 0.9),
+                          color:
+                              AppColors.grisSecondaire.withValues(alpha: 0.9),
                           fontSize: 11.5,
                         ),
                       ),
@@ -115,14 +116,13 @@ class AlarmesScreen extends ConsumerWidget {
     );
   }
 
-  Widget _carteAlarme(BuildContext context, WidgetRef ref, AlarmeAffichee alarme) {
+  Widget _carteAlarme(
+      BuildContext context, WidgetRef ref, AlarmeAffichee alarme) {
     final couleur = AppColors.depuisHex(alarme.couleurHex);
     final controleur = TextEditingController(text: alarme.prefs.message);
 
     return CarteCeleste(
-      bordure: alarme.prefs.activee
-          ? couleur.withValues(alpha: 0.45)
-          : null,
+      bordure: alarme.prefs.activee ? couleur.withValues(alpha: 0.45) : null,
       enfant: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -193,7 +193,8 @@ class AlarmesScreen extends ConsumerWidget {
                 Icon(
                   Icons.schedule,
                   size: 14,
-                  color: alarme.prefs.activee ? couleur : AppColors.grisSecondaire,
+                  color:
+                      alarme.prefs.activee ? couleur : AppColors.grisSecondaire,
                 ),
                 const SizedBox(width: 7),
                 Expanded(
@@ -232,8 +233,7 @@ class AlarmesScreen extends ConsumerWidget {
               child: Text(
                 'Ancrée au coucher du soleil réel : la norme biblique ne '
                 'fixe pas cette alarme à une heure civile.',
-                style: TextStyle(
-                    color: AppColors.grisSecondaire, fontSize: 11),
+                style: TextStyle(color: AppColors.grisSecondaire, fontSize: 11),
               ),
             ),
           if (alarme.type != TypeAlarme.rhemaSoir) const SizedBox(height: 6),
@@ -262,24 +262,31 @@ class AlarmesScreen extends ConsumerWidget {
               const SizedBox(width: 8),
               // Vibration (§8.4).
               IconButton(
-                tooltip: alarme.prefs.vibration ? 'Vibration activée' : 'Vibration désactivée',
+                tooltip: alarme.prefs.vibration
+                    ? 'Vibration activée'
+                    : 'Vibration désactivée',
                 icon: Icon(
                   alarme.prefs.vibration
                       ? Icons.vibration
                       : Icons.phonelink_erase_outlined,
-                  color: alarme.prefs.vibration ? couleur : AppColors.grisSecondaire,
+                  color: alarme.prefs.vibration
+                      ? couleur
+                      : AppColors.grisSecondaire,
                   size: 20,
                 ),
                 onPressed: () => ref
                     .read(alarmsProvider.notifier)
-                    .changerPreferences(alarme, vibration: !alarme.prefs.vibration),
+                    .changerPreferences(alarme,
+                        vibration: !alarme.prefs.vibration),
               ),
               // Son (§8.4) — menu de choix.
               PopupMenuButton<String>(
                 tooltip: 'Son de l\u2019alarme',
                 icon: Icon(
                   Icons.music_note_outlined,
-                  color: alarme.prefs.son != 'silence' ? couleur : AppColors.grisSecondaire,
+                  color: alarme.prefs.son != 'silence'
+                      ? couleur
+                      : AppColors.grisSecondaire,
                   size: 20,
                 ),
                 onSelected: (son) => ref
@@ -289,7 +296,9 @@ class AlarmesScreen extends ConsumerWidget {
                   PopupMenuItem(value: 'shofar', child: Text('Shofar')),
                   PopupMenuItem(value: 'cloche', child: Text('Cloche')),
                   PopupMenuItem(value: 'harpe', child: Text('Harpe')),
-                  PopupMenuItem(value: 'silence', child: Text('Silence (vibration seule)')),
+                  PopupMenuItem(
+                      value: 'silence',
+                      child: Text('Silence (vibration seule)')),
                 ],
               ),
             ],
@@ -301,15 +310,20 @@ class AlarmesScreen extends ConsumerWidget {
 
   /// Ligne « Heure de sonnerie » du RHEMA du matin — ouvre le sélecteur
   /// d'heure natif et reprogramme les alarmes (§8.4).
-  Widget _ligneHeure(BuildContext context, WidgetRef ref,
-      AlarmeAffichee alarme, Color couleur) =>
+  Widget _ligneHeure(BuildContext context, WidgetRef ref, AlarmeAffichee alarme,
+          Color couleur) =>
       Row(
         children: [
           Icon(Icons.alarm_outlined, size: 16, color: couleur),
           const SizedBox(width: 7),
-          const Text('Heure de sonnerie',
-              style: TextStyle(
-                  color: AppColors.grisSecondaire, fontSize: 12)),
+          // Flexible : la ligne ne déborde jamais sur les petits écrans.
+          const Flexible(
+            child: Text('Heure de sonnerie',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style:
+                    TextStyle(color: AppColors.grisSecondaire, fontSize: 12)),
+          ),
           const Spacer(),
           TextButton.icon(
             onPressed: () async {
@@ -341,14 +355,19 @@ class AlarmesScreen extends ConsumerWidget {
   /// Ligne « Avant le coucher » de la Préparation du soir — choix du
   /// décalage en minutes, reprogrammation immédiate (§8.4).
   Widget _ligneDecalage(BuildContext context, WidgetRef ref,
-      AlarmeAffichee alarme, Color couleur) =>
+          AlarmeAffichee alarme, Color couleur) =>
       Row(
         children: [
           Icon(Icons.hourglass_bottom, size: 16, color: couleur),
           const SizedBox(width: 7),
-          const Text('Avant le coucher du soleil',
-              style: TextStyle(
-                  color: AppColors.grisSecondaire, fontSize: 12)),
+          // Flexible : la ligne ne déborde jamais sur les petits écrans.
+          const Flexible(
+            child: Text('Avant le coucher du soleil',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style:
+                    TextStyle(color: AppColors.grisSecondaire, fontSize: 12)),
+          ),
           const Spacer(),
           PopupMenuButton<int>(
             tooltip: 'Minutes avant le coucher du soleil',
@@ -365,8 +384,7 @@ class AlarmesScreen extends ConsumerWidget {
               PopupMenuItem(value: 30, child: Text('30 minutes')),
             ],
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
                 color: couleur.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(9),
