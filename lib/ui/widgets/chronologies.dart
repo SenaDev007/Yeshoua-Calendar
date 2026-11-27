@@ -260,7 +260,7 @@ class TuileHeureSaisonniere extends StatelessWidget {
                     heure.repereScripturaire!.contains(' — '))
                   Text(
                     heure.repereScripturaire!.split(' — ').last,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.orFonce.withValues(alpha: 0.8),
                       fontSize: 10.5,
                     ),

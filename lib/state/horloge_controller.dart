@@ -263,3 +263,9 @@ class HorlogeController extends Notifier<HorlogeState> {
     recalculerComplet(position);
   }
 }
+
+/// Provider de l'horloge céleste — état central regardé par les écrans
+/// (accueil, horloge, calendrier, temps biblique, paramètres) et par le
+/// contrôleur d'alarmes (§8).
+final horlogeProvider =
+    NotifierProvider<HorlogeController, HorlogeState>(HorlogeController.new);

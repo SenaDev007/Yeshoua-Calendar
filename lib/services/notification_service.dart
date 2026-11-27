@@ -35,7 +35,7 @@ class NotificationService {
     if (_initialise) return;
     tzdata.initializeTimeZones();
     try {
-      final nomFuseau = await FlutterTimezone.localTimeZone;
+      final nomFuseau = await FlutterTimezone.localTimezone;
       tz.setLocalLocation(tz.getLocation(nomFuseau));
     } catch (_) {
       // Repli : fuseau système par défaut du paquet timezone.
@@ -105,6 +105,8 @@ class NotificationService {
       // Répétition quotidienne à la même heure locale — le coucher du
       // soleil n'étant PAS concerné, une répétition fixe est correcte.
       matchDateTimeComponents: DateTimeComponents.time,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       payload: 'rhema_matin',
     );
@@ -128,6 +130,8 @@ class NotificationService {
       corps,
       cible,
       _details(vibration: vibration, son: son),
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       payload: payload,
     );

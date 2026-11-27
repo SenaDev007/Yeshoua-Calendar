@@ -108,6 +108,32 @@ class PrayerAlarmEngine {
       }
     }
 
+    // ── Shofar : entrée du Shabbat et des fêtes de l'Éternel, au coucher
+    // du soleil réel + rappels J-7 / J-3 / J-24 h (jalons du moteur).
+    // Toujours sonné au shofar (§18) — un confort de plus : en cas
+    // d'imprévu (année indisponible), les RHEMA restent planifiés.
+    try {
+      final evenements = adapter.prochainsEvenementsShofar(maintenant);
+      final shofars = AlarmPlanner.planifierShofar(
+        evenements: evenements,
+        maintenant: maintenant,
+        son: 'shofar',
+      );
+      for (final s in shofars) {
+        await NotificationService.instance.planifierOneShot(
+          id: s.id,
+          titre: s.titre,
+          corps: s.corps,
+          instant: s.instant,
+          vibration: s.vibration,
+          son: s.son,
+          payload: s.payload,
+        );
+      }
+    } catch (_) {
+      // La planification des shofars ne doit jamais bloquer les RHEMA.
+    }
+
     _derniereProgrammation = maintenant;
     _dernierePositionUtilisee = position.libelle;
   }

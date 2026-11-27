@@ -140,7 +140,7 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen> {
     // embellissement que la carte « jour en cours » de la page web.
     return BandeauSaisonnier(
       saison: saisonImage,
-      child: Column(
+      enfant: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(

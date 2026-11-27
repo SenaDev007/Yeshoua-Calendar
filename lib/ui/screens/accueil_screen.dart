@@ -56,7 +56,7 @@ class AccueilScreen extends ConsumerWidget {
           saison: jour != null
               ? ImageSaison.depuisTrimestre(jour.trimestre)
               : ImageSaison.approx(etat.maintenant),
-          child: Column(
+          enfant: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(

@@ -13,6 +13,7 @@
 library;
 
 import 'biblical_calendar_adapter.dart';
+import 'models.dart';
 
 enum TypeAlarme { rhemaMatin, preparationSoir, rhemaSoir }
 
@@ -56,6 +57,29 @@ class AlarmePlanifiee {
   });
 }
 
+/// Une notification SHOFAR planifiée — entrée du Shabbat ou d'une fête
+/// de l'Éternel au coucher du soleil réel, ou rappel d'approche
+/// (J-7 / J-3 / J-24 h). Miroir des `EvenementShofar` du backend.
+class ShofarPlanifie {
+  final int id;
+  final DateTime instant;
+  final String titre;
+  final String corps;
+  final String payload;
+  final String son;
+  final bool vibration;
+
+  const ShofarPlanifie({
+    required this.id,
+    required this.instant,
+    required this.titre,
+    required this.corps,
+    required this.payload,
+    this.son = 'shofar',
+    this.vibration = true,
+  });
+}
+
 class AlarmPlanner {
   AlarmPlanner._();
 
@@ -63,6 +87,11 @@ class AlarmPlanner {
   static const int idRhemaMatin = 11;
   static const int idPreparationSoir = 12;
   static const int idRhemaSoir = 13;
+
+  /// Plage des identifiants SHOFAR : entrées de Shabbats/fêtes à partir de
+  /// 100, rappels de fêtes à partir de 400 — hors des identifiants RHEMA.
+  static const int idShofarBase = 100;
+  static const int idRappelsBase = 400;
 
   static const Map<TypeAlarme, int> idsNotification = {
     TypeAlarme.rhemaMatin: idRhemaMatin,
@@ -164,4 +193,67 @@ class AlarmPlanner {
   /// Historique des dernières notifications (§8.4 — l'app persiste).
   static String cleHistorique(DateTime instant, TypeAlarme type) =>
       'alarme-${type.name}-${instant.toIso8601String()}';
+
+  /// ── SHOFAR : entrée du Shabbat et des fêtes + rappels d'approche ────
+  ///
+  /// À l'entrée de chaque Shabbat (coucher du soleil du vendredi) et de
+  /// chaque fête de l'Éternel (coucher du soleil de la veille du jour
+  /// biblique), le shofar retentit. Pour chaque FÊTE, des rappels sont
+  /// émis à J-7, J-3 et J-24 h — instants qui tombent eux-mêmes au
+  /// coucher du soleil (l'entrée étant un coucher, les jalons sont des
+  /// couchers décalés). Les jalons déjà passés sont omis.
+  static List<ShofarPlanifie> planifierShofar({
+    required List<EvenementShofar> evenements,
+    required DateTime maintenant,
+    bool vibration = true,
+    String son = 'shofar',
+  }) {
+    final resultats = <ShofarPlanifie>[];
+    var idxEntree = 0;
+    var idxRappel = 0;
+
+    final tries = [...evenements]
+      ..sort((a, b) => a.entree.compareTo(b.entree));
+
+    for (final e in tries) {
+      if (e.entree.isAfter(maintenant)) {
+        final estShabbat = e.type == 'shabbat';
+        resultats.add(ShofarPlanifie(
+          id: idShofarBase + idxEntree++,
+          instant: e.entree,
+          titre: estShabbat
+              ? 'Shofar — entrée du Shabbat'
+              : 'Shofar — entrée de ${e.titre}',
+          corps: estShabbat
+              ? "Le soleil se couche : le Shabbat commence. Sainte convocation, repos et joie (Lévitique 23:3). Shalom !"
+              : "${e.titre} commence maintenant, au coucher du soleil. "
+                  "Le shofar retentit pour la sainte convocation. Shalom !",
+          payload: estShabbat ? 'shofar_shabbat' : 'shofar_fete',
+          son: son,
+          vibration: vibration,
+        ));
+      }
+
+      if (e.type != 'fete') continue;
+      for (final jalon in e.jalons) {
+        if (!jalon.date.isAfter(maintenant)) continue;
+        resultats.add(ShofarPlanifie(
+          id: idRappelsBase + idxRappel++,
+          instant: jalon.date,
+          titre: 'Rappel — ${e.titre} dans ${jalon.label}',
+          corps: jalon.cle == 'j24h'
+              ? "${e.titre} commence dans 24 heures : le shofar retentira "
+                  "au coucher du soleil marquant son entrée."
+              : "${e.titre} approche : dans ${jalon.label}, le shofar "
+                  "retentira au coucher du soleil marquant son entrée.",
+          payload: 'rappel_${jalon.cle}',
+          son: son,
+          vibration: vibration,
+        ));
+      }
+    }
+
+    resultats.sort((a, b) => a.instant.compareTo(b.instant));
+    return resultats;
+  }
 }

@@ -112,6 +112,63 @@ class BiblicalCalendarAdapter {
     return demain.calculable ? demain.lever : null;
   }
 
+  /// Événements shofar à venir (Shabbats + fêtes de l'Éternel) dont
+  /// l'entrée est le COUCHER DU SOLEIL RÉEL de la position (§9) — base de
+  /// la planification des notifications (AlarmPlanner.planifierShofar).
+  ///
+  /// [horizonJours] borne l'entrée des événements retenus ; les fêtes dont
+  /// un jalon (J-7 / J-3 / J-24 h) tombe dans l'horizon + 8 jours restent
+  /// conservées afin que leurs rappels soient planifiés même si leur
+  /// entrée dépasse l'horizon. Liste vide en région polaire (aucun
+  /// coucher calculable) — jamais d'heure inventée (§9.4).
+  List<EvenementShofar> prochainsEvenementsShofar(DateTime maintenant,
+      {int horizonJours = 40}) {
+    final sonde = SolarEngine.calculer(maintenant, latitude, longitude);
+    if (!sonde.calculable) return const [];
+
+    DateTime coucherDuSoleilDe(DateTime jour) =>
+        SolarEngine.calculer(jour, latitude, longitude).coucher!;
+
+    final limiteEntree = maintenant.add(Duration(days: horizonJours));
+    final limiteJalons = limiteEntree.add(const Duration(days: 8));
+
+    // Année biblique courante + suivante : les événements à cheval sur
+    // la fin d'année restent planifiés (dédoublonnage par identifiant).
+    // Chaque année est construite sous garde : dans une région où un jour
+    // de l'année est polaire (coucher incalculable), cette année est
+    // ignorée — jamais d'heure inventée (§9.4).
+    final parId = <String, EvenementShofar>{};
+    final annees = [
+      BiblicalCalendarEngine.anneePourDate(maintenant),
+      BiblicalCalendarEngine.anneePourDate(limiteEntree),
+    ];
+    for (final annee in annees) {
+      try {
+        for (final evenement in BiblicalCalendarEngine.construireEvenements(
+            annee, coucherDuSoleilDe)) {
+          parId[evenement.id] = evenement;
+        }
+      } catch (_) {
+        // Année incalculable pour cette position : on passe à la suivante.
+      }
+    }
+
+    bool retenu(EvenementShofar e) {
+      if (e.entree.isAfter(maintenant) && e.entree.isBefore(limiteEntree)) {
+        return true;
+      }
+      if (e.type == 'fete') {
+        return e.jalons.any((j) =>
+            j.date.isAfter(maintenant) && j.date.isBefore(limiteJalons));
+      }
+      return false;
+    }
+
+    final retenus = parId.values.where(retenu).toList()
+      ..sort((a, b) => a.entree.compareTo(b.entree));
+    return retenus;
+  }
+
   /// Instantané d'état persistable (§13).
   EtatTemporel etatTemporel(DateTime maintenant, {String? fuseau}) {
     final jour = jourBibliqueActuel(maintenant);

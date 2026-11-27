@@ -147,7 +147,11 @@ class SolarEngine {
     final obliquite = obliquite0 +
         0.00256 * _cos(_rad(125.04 - 1934.136 * t));
 
-    final y = _tan(_rad(obliquite / 2.0));
+    final yTan = _tan(_rad(obliquite / 2.0));
+    // Convention NOAA : y = tan²(ε₀/2) — le CARRÉ de la tangente.
+    // (Un simple tan(ε/2) fausse l'équation du temps de ~±25-35 min
+    // selon la saison, donc les couchers du soleil avec.)
+    final y = yTan * yTan;
     final yCarre = y * y;
 
     final l0Rad = _rad(l0);

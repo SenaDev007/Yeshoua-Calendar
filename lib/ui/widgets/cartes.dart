@@ -250,7 +250,7 @@ class CarteSoleil extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => CarteCeleste(
-        child: Column(
+        enfant: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
