@@ -48,23 +48,33 @@ class PrayerAlarmEngine {
     final alarmes = [
       AlarmeSpirituelle(
         type: TypeAlarme.rhemaMatin,
-        nom: 'RHEMA du matin — 05 h 00',
+        nom: prefs.matin.heure == 5 && prefs.matin.minute == 0
+            ? 'RHEMA du matin — 05 h 00'
+            : 'RHEMA du matin — '
+                '${prefs.matin.heure.toString().padLeft(2, '0')} h '
+                '${prefs.matin.minute.toString().padLeft(2, '0')}',
         message: prefs.matin.message.isEmpty
             ? AlarmPlanner.messageMatinDefaut
             : prefs.matin.message,
         activee: prefs.matin.activee,
         vibration: prefs.matin.vibration,
         son: prefs.matin.son,
+        heure: prefs.matin.heure,
+        minute: prefs.matin.minute,
+        minutesAvant: prefs.matin.minutesAvant,
       ),
       AlarmeSpirituelle(
         type: TypeAlarme.preparationSoir,
-        nom: 'Préparation du soir — 5 min avant le coucher',
+        nom: 'Préparation du soir — ${prefs.preparation.minutesAvant} min avant le coucher',
         message: prefs.preparation.message.isEmpty
             ? AlarmPlanner.messagePreparationDefaut
             : prefs.preparation.message,
         activee: prefs.preparation.activee,
         vibration: prefs.preparation.vibration,
         son: prefs.preparation.son,
+        heure: prefs.preparation.heure,
+        minute: prefs.preparation.minute,
+        minutesAvant: prefs.preparation.minutesAvant,
       ),
       AlarmeSpirituelle(
         type: TypeAlarme.rhemaSoir,
@@ -75,6 +85,9 @@ class PrayerAlarmEngine {
         activee: prefs.soir.activee,
         vibration: prefs.soir.vibration,
         son: prefs.soir.son,
+        heure: prefs.soir.heure,
+        minute: prefs.soir.minute,
+        minutesAvant: prefs.soir.minutesAvant,
       ),
     ];
 
@@ -94,6 +107,8 @@ class PrayerAlarmEngine {
           corps: a.message,
           vibration: a.vibration,
           son: a.son,
+          heure: prefs.matin.heure,
+          minute: prefs.matin.minute,
         );
       } else {
         await NotificationService.instance.planifierOneShot(

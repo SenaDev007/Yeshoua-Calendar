@@ -96,7 +96,9 @@ class AlarmsController extends Notifier<AlarmsState> {
         type: TypeAlarme.rhemaMatin,
         cle: SettingsStore.cleAlarmeMatin,
         nom: 'RHEMA du matin',
-        sousTitre: 'Rendez-vous matinal de prière — 05 h 00',
+        sousTitre: 'Rendez-vous matinal de prière — '
+            '${prefsMatin.heure.toString().padLeft(2, '0')} h '
+            '${prefsMatin.minute.toString().padLeft(2, '0')} (réglable)',
         prefs: prefsMatin,
         prochainInstant: instant(TypeAlarme.rhemaMatin),
         couleurHex: '#3B82F6',
@@ -105,7 +107,8 @@ class AlarmsController extends Notifier<AlarmsState> {
         type: TypeAlarme.preparationSoir,
         cle: SettingsStore.cleAlarmePreparation,
         nom: 'Préparation du soir',
-        sousTitre: '5 minutes avant le coucher du soleil réel',
+        sousTitre: '${prefsPreparation.minutesAvant} minutes avant le '
+            'coucher du soleil réel (réglable)',
         prefs: prefsPreparation,
         prochainInstant: instant(TypeAlarme.preparationSoir),
         couleurHex: '#CFA63A',
@@ -146,12 +149,37 @@ class AlarmsController extends Notifier<AlarmsState> {
         adapter: _adapterDepuis(ref.read(horlogeProvider)), forcer: true);
   }
 
-  /// Change le message personnalisé d'une alarme (§8.4).
+  /// Change le message personnalisé d'une alarme (§8.4), puis reprogramme
+  /// pour que le nouveau message s'applique dès la prochaine sonnerie.
   Future<void> changerMessage(AlarmeAffichee alarme, String message) async {
     final store = SettingsStore.instance;
     final prefs = store.alarme(alarme.cle, alarme.prefs.message);
     await store.sauvegarderAlarme(
         alarme.cle, prefs.copyWith(message: message));
+    await PrayerAlarmEngine.instance.reprogrammer(
+        adapter: _adapterDepuis(ref.read(horlogeProvider)), forcer: true);
+  }
+
+  /// Change l'HEURE d'une alarme à heure fixe (RHEMA du matin — §8.4),
+  /// puis reprogramme immédiatement.
+  Future<void> changerHeure(AlarmeAffichee alarme, int heure, int minute) async {
+    final store = SettingsStore.instance;
+    final prefs = store.alarme(alarme.cle, alarme.prefs.message);
+    await store.sauvegarderAlarme(
+        alarme.cle, prefs.copyWith(heure: heure, minute: minute));
+    await PrayerAlarmEngine.instance.reprogrammer(
+        adapter: _adapterDepuis(ref.read(horlogeProvider)), forcer: true);
+  }
+
+  /// Change le décalage en minutes avant le coucher réel (Préparation du
+  /// soir — §8.4), puis reprogramme immédiatement.
+  Future<void> changerMinutesAvant(AlarmeAffichee alarme, int minutes) async {
+    final store = SettingsStore.instance;
+    final prefs = store.alarme(alarme.cle, alarme.prefs.message);
+    await store.sauvegarderAlarme(
+        alarme.cle, prefs.copyWith(minutesAvant: minutes));
+    await PrayerAlarmEngine.instance.reprogrammer(
+        adapter: _adapterDepuis(ref.read(horlogeProvider)), forcer: true);
   }
 
   /// Change la vibration / le son d'une alarme (§8.4).

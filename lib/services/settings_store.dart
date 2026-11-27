@@ -55,36 +55,67 @@ class PositionUtilisateur {
   );
 }
 
-/// Préférences d'une alarme spirituelle (§8).
+/// Préférences d'une alarme spirituelle (§8) — horaires réglables.
 class AlarmePrefs {
   final bool activee;
   final bool vibration;
   final String son;
   final String message;
 
+  /// RHEMA du matin : heure locale choisie (défaut 05 h 00).
+  final int heure;
+  final int minute;
+
+  /// Préparation du soir : minutes avant le coucher réel (défaut 5).
+  final int minutesAvant;
+
   const AlarmePrefs({
     this.activee = true,
     this.vibration = true,
     this.son = 'shofar',
     required this.message,
+    this.heure = 5,
+    this.minute = 0,
+    this.minutesAvant = 5,
   });
 
-  AlarmePrefs copyWith({bool? activee, bool? vibration, String? son, String? message}) =>
+  AlarmePrefs copyWith({
+    bool? activee,
+    bool? vibration,
+    String? son,
+    String? message,
+    int? heure,
+    int? minute,
+    int? minutesAvant,
+  }) =>
       AlarmePrefs(
         activee: activee ?? this.activee,
         vibration: vibration ?? this.vibration,
         son: son ?? this.son,
         message: message ?? this.message,
+        heure: heure ?? this.heure,
+        minute: minute ?? this.minute,
+        minutesAvant: minutesAvant ?? this.minutesAvant,
       );
 
-  Map<String, dynamic> toJson() =>
-      {'activee': activee, 'vibration': vibration, 'son': son, 'message': message};
+  Map<String, dynamic> toJson() => {
+        'activee': activee,
+        'vibration': vibration,
+        'son': son,
+        'message': message,
+        'heure': heure,
+        'minute': minute,
+        'minutesAvant': minutesAvant,
+      };
 
   static AlarmePrefs fromJson(Map<String, dynamic> json) => AlarmePrefs(
         activee: json['activee'] as bool? ?? true,
         vibration: json['vibration'] as bool? ?? true,
         son: json['son'] as String? ?? 'shofar',
         message: json['message'] as String? ?? '',
+        heure: json['heure'] as int? ?? 5,
+        minute: json['minute'] as int? ?? 0,
+        minutesAvant: json['minutesAvant'] as int? ?? 5,
       );
 }
 

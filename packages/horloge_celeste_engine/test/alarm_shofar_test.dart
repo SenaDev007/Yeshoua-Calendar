@@ -98,8 +98,9 @@ void main() {
     });
 
     test('les jalons déjà passés sont omis, les futurs conservés', () {
-      // Entrée dans 4 jours : J-7 et J-3 passés, J-24 h futur.
-      final entree = maintenant.add(const Duration(days: 4));
+      // Entrée dans 2 jours : J-7 (−5 j) et J-3 (−1 j) passés,
+      // J-24 h (+1 j) futur.
+      final entree = maintenant.add(const Duration(days: 2));
       final plan = AlarmPlanner.planifierShofar(
         evenements: [_fete('fete-y', 'Pessah', entree, entree)],
         maintenant: maintenant,

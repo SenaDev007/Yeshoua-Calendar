@@ -275,6 +275,106 @@ void main() {
     });
   });
 
+  group('Horaires réglables par l\u2019utilisateur (§8.4)', () {
+    final adapter = BiblicalCalendarAdapter(latitude: latCotonou, longitude: lonCotonou);
+
+    test('RHEMA du matin à une heure choisie (ex. 21 h 30) : respectée', () {
+      final maintenant = DateTime(2026, 3, 20, 6, 30);
+      final plan = AlarmPlanner.planifier(
+        adapter: adapter,
+        alarmes: const [
+          AlarmeSpirituelle(
+            type: TypeAlarme.rhemaMatin,
+            nom: 'RHEMA du matin',
+            message: AlarmPlanner.messageMatinDefaut,
+            heure: 21,
+            minute: 30,
+          ),
+        ],
+        maintenant: maintenant,
+      );
+      expect(plan.length, 1);
+      // 21 h 30 à venir aujourd'hui → ce soir même.
+      expect(plan.first.instant.day, 20);
+      expect(plan.first.instant.hour, 21);
+      expect(plan.first.instant.minute, 30);
+    });
+
+    test('RHEMA du matin : l\u2019heure choisie passée → jour suivant', () {
+      final maintenant = DateTime(2026, 3, 20, 22, 0);
+      final cible = AlarmPlanner.prochainRhemaMatin(maintenant,
+          heure: 5, minute: 15);
+      expect(cible.day, 21, reason: '05 h 15 déjà passé ce jour-là');
+      expect(cible.hour, 5);
+      expect(cible.minute, 15);
+    });
+
+    test('défauts historiques conservés : 05 h 00 et préparation − 5 min', () {
+      final maintenant = DateTime(2026, 3, 20, 12, 0);
+      final coucher = adapter.prochainCoucher(maintenant)!;
+      final plan = AlarmPlanner.planifier(
+        adapter: adapter,
+        alarmes: const [
+          AlarmeSpirituelle(
+              type: TypeAlarme.rhemaMatin,
+              nom: 'RHEMA du matin',
+              message: AlarmPlanner.messageMatinDefaut),
+          AlarmeSpirituelle(
+              type: TypeAlarme.preparationSoir,
+              nom: 'Préparation du soir',
+              message: AlarmPlanner.messagePreparationDefaut),
+        ],
+        maintenant: maintenant,
+      );
+      final matin = plan.firstWhere((a) => a.type == TypeAlarme.rhemaMatin);
+      final prep =
+          plan.firstWhere((a) => a.type == TypeAlarme.preparationSoir);
+      expect(matin.instant.hour, 5);
+      expect(matin.instant.minute, 0);
+      expect(prep.instant, coucher.subtract(const Duration(minutes: 5)));
+    });
+
+    test('Préparation du soir : décalage réglable (ex. 20 min)', () {
+      final maintenant = DateTime(2026, 3, 20, 12, 0);
+      final coucher = adapter.prochainCoucher(maintenant)!;
+      final plan = AlarmPlanner.planifier(
+        adapter: adapter,
+        alarmes: const [
+          AlarmeSpirituelle(
+            type: TypeAlarme.preparationSoir,
+            nom: 'Préparation du soir',
+            message: AlarmPlanner.messagePreparationDefaut,
+            minutesAvant: 20,
+          ),
+        ],
+        maintenant: maintenant,
+      );
+      expect(plan.first.instant, coucher.subtract(const Duration(minutes: 20)));
+    });
+
+    test('RHEMA du soir : toujours ancré au coucher réel, quels que soient '
+        'les réglages (norme biblique)', () {
+      final maintenant = DateTime(2026, 3, 20, 12, 0);
+      final coucher = adapter.prochainCoucher(maintenant)!;
+      final plan = AlarmPlanner.planifier(
+        adapter: adapter,
+        alarmes: const [
+          AlarmeSpirituelle(
+            type: TypeAlarme.rhemaSoir,
+            nom: 'RHEMA du soir',
+            message: AlarmPlanner.messageSoirDefaut,
+            heure: 9,
+            minute: 9,
+            minutesAvant: 42,
+          ),
+        ],
+        maintenant: maintenant,
+      );
+      expect(plan.first.instant, coucher,
+          reason: 'le RHEMA du soir ne peut pas être détaché du coucher');
+    });
+  });
+
   group('Détection de ruptures temporelles (§13)', () {
     test('aucune rupture en fonctionnement normal', () {
       final etat = EtatTemporel(

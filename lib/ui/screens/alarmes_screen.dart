@@ -44,8 +44,9 @@ class AlarmesScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 6),
               Text(
-                'Trois rendez-vous fixes avec l\u2019Éternel dans la journée biblique. '
-                'Les alarmes du soir suivent le coucher du soleil RÉEL de votre position '
+                'Trois rendez-vous avec l\u2019Éternel dans la journée biblique. '
+                'Le RHEMA du matin sonne à l\u2019heure que VOUS réglez ; les alarmes '
+                'du soir suivent le coucher du soleil RÉEL de votre position '
                 '— jamais une heure fixe. Elles fonctionnent même quand l\u2019application '
                 'est fermée (dans les limites de votre système).',
                 style: const TextStyle(
@@ -217,6 +218,25 @@ class AlarmesScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 10),
+          // ── Horaire réglable (§8.4) : le RHEMA du matin sonne à l'heure
+          //    choisie ; la Préparation du soir se règle en minutes avant
+          //    le coucher ; le RHEMA du soir reste ancré au coucher réel
+          //    (norme biblique — jamais une heure civile figée).
+          if (alarme.type == TypeAlarme.rhemaMatin)
+            _ligneHeure(context, ref, alarme, couleur),
+          if (alarme.type == TypeAlarme.preparationSoir)
+            _ligneDecalage(context, ref, alarme, couleur),
+          if (alarme.type == TypeAlarme.rhemaSoir)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 2),
+              child: Text(
+                'Ancrée au coucher du soleil réel : la norme biblique ne '
+                'fixe pas cette alarme à une heure civile.',
+                style: TextStyle(
+                    color: AppColors.grisSecondaire, fontSize: 11),
+              ),
+            ),
+          if (alarme.type != TypeAlarme.rhemaSoir) const SizedBox(height: 6),
           // Message personnalisé (§8.4).
           Row(
             children: [
@@ -278,6 +298,96 @@ class AlarmesScreen extends ConsumerWidget {
       ),
     );
   }
+
+  /// Ligne « Heure de sonnerie » du RHEMA du matin — ouvre le sélecteur
+  /// d'heure natif et reprogramme les alarmes (§8.4).
+  Widget _ligneHeure(BuildContext context, WidgetRef ref,
+      AlarmeAffichee alarme, Color couleur) =>
+      Row(
+        children: [
+          Icon(Icons.alarm_outlined, size: 16, color: couleur),
+          const SizedBox(width: 7),
+          const Text('Heure de sonnerie',
+              style: TextStyle(
+                  color: AppColors.grisSecondaire, fontSize: 12)),
+          const Spacer(),
+          TextButton.icon(
+            onPressed: () async {
+              final choisi = await showTimePicker(
+                context: context,
+                initialTime: TimeOfDay(
+                    hour: alarme.prefs.heure, minute: alarme.prefs.minute),
+                helpText: 'Heure du RHEMA du matin',
+              );
+              if (choisi != null) {
+                await ref
+                    .read(alarmsProvider.notifier)
+                    .changerHeure(alarme, choisi.hour, choisi.minute);
+              }
+            },
+            icon: Icon(Icons.edit_outlined, size: 14, color: couleur),
+            label: Text(
+              '${_2(alarme.prefs.heure)} h ${_2(alarme.prefs.minute)}',
+              style: const TextStyle(
+                color: AppColors.ardoise,
+                fontWeight: FontWeight.w800,
+                fontSize: 13,
+              ),
+            ),
+          ),
+        ],
+      );
+
+  /// Ligne « Avant le coucher » de la Préparation du soir — choix du
+  /// décalage en minutes, reprogrammation immédiate (§8.4).
+  Widget _ligneDecalage(BuildContext context, WidgetRef ref,
+      AlarmeAffichee alarme, Color couleur) =>
+      Row(
+        children: [
+          Icon(Icons.hourglass_bottom, size: 16, color: couleur),
+          const SizedBox(width: 7),
+          const Text('Avant le coucher du soleil',
+              style: TextStyle(
+                  color: AppColors.grisSecondaire, fontSize: 12)),
+          const Spacer(),
+          PopupMenuButton<int>(
+            tooltip: 'Minutes avant le coucher du soleil',
+            onSelected: (m) => ref
+                .read(alarmsProvider.notifier)
+                .changerMinutesAvant(alarme, m),
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: 1, child: Text('1 minute')),
+              PopupMenuItem(value: 3, child: Text('3 minutes')),
+              PopupMenuItem(value: 5, child: Text('5 minutes')),
+              PopupMenuItem(value: 10, child: Text('10 minutes')),
+              PopupMenuItem(value: 15, child: Text('15 minutes')),
+              PopupMenuItem(value: 20, child: Text('20 minutes')),
+              PopupMenuItem(value: 30, child: Text('30 minutes')),
+            ],
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: couleur.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(9),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('${alarme.prefs.minutesAvant} min',
+                      style: const TextStyle(
+                        color: AppColors.ardoise,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13,
+                      )),
+                  const SizedBox(width: 4),
+                  Icon(Icons.expand_more, size: 15, color: couleur),
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
 
   String _formatInstant(String iso) {
     final d = DateTime.tryParse(iso);

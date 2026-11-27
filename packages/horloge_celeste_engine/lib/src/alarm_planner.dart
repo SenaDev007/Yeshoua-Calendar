@@ -26,6 +26,15 @@ class AlarmeSpirituelle {
   final bool vibration;
   final String son;
 
+  /// RHEMA DU MATIN uniquement — heure locale choisie par l'utilisateur
+  /// (défaut biblique 05 h 00 ; réglable, jamais figée §8.4).
+  final int heure;
+  final int minute;
+
+  /// PRÉPARATION DU SOIR uniquement — minutes avant le coucher réel
+  /// (défaut 5 ; réglable §8.4).
+  final int minutesAvant;
+
   const AlarmeSpirituelle({
     required this.type,
     required this.nom,
@@ -33,6 +42,9 @@ class AlarmeSpirituelle {
     this.activee = true,
     this.vibration = true,
     this.son = 'shofar',
+    this.heure = 5,
+    this.minute = 0,
+    this.minutesAvant = 5,
   });
 }
 
@@ -133,7 +145,6 @@ class AlarmPlanner {
     required BiblicalCalendarAdapter adapter,
     required List<AlarmeSpirituelle> alarmes,
     required DateTime maintenant,
-    int minutesAvantPreparation = 5,
   }) {
     final resultats = <AlarmePlanifiee>[];
 
@@ -144,7 +155,9 @@ class AlarmPlanner {
           resultats.add(AlarmePlanifiee(
             type: alarme.type,
             nom: alarme.nom,
-            instant: prochainRhemaMatin(maintenant),
+            // Heure choisie par l'utilisateur (05 h 00 par défaut).
+            instant: prochainRhemaMatin(maintenant,
+                heure: alarme.heure, minute: alarme.minute),
             message: alarme.message,
             vibration: alarme.vibration,
             son: alarme.son,
@@ -154,8 +167,8 @@ class AlarmPlanner {
         case TypeAlarme.preparationSoir:
           final coucher = adapter.prochainCoucher(maintenant);
           if (coucher != null) {
-            final instant =
-                coucher.subtract(Duration(minutes: minutesAvantPreparation));
+            final instant = coucher
+                .subtract(Duration(minutes: alarme.minutesAvant));
             if (instant.isAfter(maintenant)) {
               resultats.add(AlarmePlanifiee(
                 type: alarme.type,

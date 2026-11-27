@@ -19,12 +19,21 @@ class HorlogeAnalogique extends StatefulWidget {
     required this.labelPeriode,
     required this.sousLabelPeriode,
     required this.nuit,
+    this.coucherArc,
+    this.leverArc,
   });
 
   final DateTime maintenant;
   final String labelPeriode;
   final String sousLabelPeriode;
   final bool nuit;
+
+  /// Coucher / lever du soleil RÉELS bornant la période en cours (§6.2) :
+  /// l'arc extérieur du cadran commence au coucher réel et s'achève au
+  /// lever réel (norme biblique — jamais 18 h / 6 h fixes). Si null
+  /// (calcul impossible), repli sur 18 h / 6 h.
+  final DateTime? coucherArc;
+  final DateTime? leverArc;
 
   @override
   State<HorlogeAnalogique> createState() => _HorlogeAnalogiqueState();
@@ -63,6 +72,8 @@ class _HorlogeAnalogiqueState extends State<HorlogeAnalogique>
           labelPeriode: widget.labelPeriode,
           sousLabelPeriode: widget.sousLabelPeriode,
           nuit: widget.nuit,
+          coucherArc: widget.coucherArc,
+          leverArc: widget.leverArc,
         ),
       ),
     );
@@ -76,6 +87,8 @@ class _PeintureCadran extends CustomPainter {
     required this.labelPeriode,
     required this.sousLabelPeriode,
     required this.nuit,
+    this.coucherArc,
+    this.leverArc,
   });
 
   final DateTime maintenant;
@@ -83,6 +96,32 @@ class _PeintureCadran extends CustomPainter {
   final String labelPeriode;
   final String sousLabelPeriode;
   final bool nuit;
+  final DateTime? coucherArc;
+  final DateTime? leverArc;
+
+  /// Angle du cadran 12 h pour un instant civil donné.
+  double _anglePour(DateTime t) =>
+      ((t.hour % 12) * 60 + t.minute + t.second / 60.0) /
+          720.0 *
+          2 *
+          math.pi -
+      math.pi / 2;
+
+  /// Bornes de l'arc de la période en cours (§6.2 — coucher/lever réels).
+  ({double debut, double fin}) _bornesArc() {
+    if (coucherArc != null && leverArc != null) {
+      final d = nuit ? _anglePour(coucherArc!) : _anglePour(leverArc!);
+      final f = nuit ? _anglePour(leverArc!) : _anglePour(coucherArc!);
+      // La nuit traverse minuit : si l'extrémité précède l'origine,
+      // on repasse par le tour complet du cadran.
+      return (debut: d, fin: f <= d ? f + 2 * math.pi : f);
+    }
+    // Repli si le calcul solaire est indisponible : 18 h → 6 h.
+    const d = 18.0 / 24.0 * 2 * math.pi - math.pi / 2;
+    return nuit
+        ? (debut: d, fin: d + math.pi)
+        : (debut: d - math.pi, fin: d);
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -158,19 +197,13 @@ class _PeintureCadran extends CustomPainter {
     }
 
     // ── Arc de la période en cours (extérieur) ──
-    final double debutArc, finArc;
-    if (nuit) {
-      // Nuit : du coucher (18h sur le cadran) au lever (6h) — moitié basse.
-      debutArc = 180.0 * math.pi / 180 - math.pi / 2;
-      finArc = 360.0 * math.pi / 180 - math.pi / 2;
-    } else {
-      debutArc = 0.0 * math.pi / 180 - math.pi / 2;
-      finArc = 180.0 * math.pi / 180 - math.pi / 2;
-    }
+    // Nuit : du coucher RÉEL au lever RÉEL ; jour : du lever RÉEL au
+    // coucher RÉEL (§6.2 — jamais de bornes civiles figées).
+    final bornes = _bornesArc();
     canvas.drawArc(
       Rect.fromCircle(center: centre, radius: rayon - 5),
-      debutArc,
-      finArc - debutArc,
+      bornes.debut,
+      bornes.fin - bornes.debut,
       false,
       Paint()
         ..style = PaintingStyle.stroke
@@ -288,5 +321,7 @@ class _PeintureCadran extends CustomPainter {
   @override
   bool shouldRepaint(_PeintureCadran ancien) =>
       ancien.maintenant != maintenant ||
-      ancien.fractionSeconde != fractionSeconde;
+      ancien.fractionSeconde != fractionSeconde ||
+      ancien.coucherArc != coucherArc ||
+      ancien.leverArc != leverArc;
 }

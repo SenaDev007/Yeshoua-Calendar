@@ -1,7 +1,8 @@
 /// ⭐ SERVICE DE NOTIFICATIONS — PHASE 7 (§8).
 ///
 /// Notifications locales natives pour les trois alarmes spirituelles :
-///   1. RHEMA du matin — 05 h 00 locales (répétition quotidienne) ;
+///   1. RHEMA du matin — heure locale choisie par l'utilisateur (05 h 00
+///      par défaut ; répétition quotidienne) ;
 ///   2. Préparation du soir — coucher du soleil réel − 5 minutes (one-shot
 ///      replanifié chaque jour et à chaque changement de position) ;
 ///   3. RHEMA du soir — au coucher du soleil réel (one-shot replanifié).
@@ -35,7 +36,7 @@ class NotificationService {
     if (_initialise) return;
     tzdata.initializeTimeZones();
     try {
-      final nomFuseau = await FlutterTimezone.localTimezone;
+      final nomFuseau = await FlutterTimezone.getLocalTimezone();
       tz.setLocalLocation(tz.getLocation(nomFuseau));
     } catch (_) {
       // Repli : fuseau système par défaut du paquet timezone.
@@ -72,27 +73,67 @@ class NotificationService {
   Future<void> _creerCanauxAndroid() async {
     final androidImpl = _plugin.resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin>();
-    const canalAlarme = AndroidNotificationChannel(
-      'alarmes_celestes',
-      'Alarmes spirituelles Horloge Céleste',
-      description: 'RHEMA du matin, préparation du soir et RHEMA du soir',
-      importance: Importance.max,
-      playSound: true,
-      enableVibration: true,
-    );
-    await androidImpl?.createNotificationChannel(canalAlarme);
+    // UN CANAL PAR SONNERIE (§8.4) : sur Android 8+, le son est figé dans le
+    // canal au moment de sa création — pour que le shofar (ou la cloche, ou
+    // la harpe) retentisse même quand l'application est fermée, chaque mode
+    // de sonnerie dispose de son propre canal, créé AVEC son son embarqué
+    // (res/raw/<nom>.mp3). 'silence' : vibration seule, sans son.
+    const canaux = [
+      AndroidNotificationChannel(
+        'alarmes_shofar',
+        'Alarmes — Shofar',
+        description: 'Alarmes spirituelles sonnées au shofar',
+        importance: Importance.max,
+        playSound: true,
+        sound: RawResourceAndroidNotificationSound('shofar'),
+        enableVibration: true,
+      ),
+      AndroidNotificationChannel(
+        'alarmes_cloche',
+        'Alarmes — Cloche',
+        description: 'Alarmes spirituelles sonnées à la cloche',
+        importance: Importance.max,
+        playSound: true,
+        sound: RawResourceAndroidNotificationSound('cloche'),
+        enableVibration: true,
+      ),
+      AndroidNotificationChannel(
+        'alarmes_harpe',
+        'Alarmes — Harpe',
+        description: 'Alarmes spirituelles sonnées à la harpe',
+        importance: Importance.max,
+        playSound: true,
+        sound: RawResourceAndroidNotificationSound('harpe'),
+        enableVibration: true,
+      ),
+      AndroidNotificationChannel(
+        'alarmes_silence',
+        'Alarmes — Silence',
+        description: 'Alarmes silencieuses (vibration seule)',
+        importance: Importance.max,
+        playSound: false,
+        enableVibration: true,
+      ),
+    ];
+    for (final canal in canaux) {
+      await androidImpl?.createNotificationChannel(canal);
+    }
   }
 
-  /// Planifie le RHEMA du matin — répétition QUOTIDIENNE à 05 h 00 locales.
+  /// Planifie le RHEMA du matin — répétition QUOTIDIENNE à l'heure locale
+  /// choisie par l'utilisateur (05 h 00 par défaut, réglable §8.4).
   Future<void> planifierRhemaMatin({
     required int id,
     required String titre,
     required String corps,
     required bool vibration,
     required String son,
+    required int heure,
+    required int minute,
   }) async {
     final now = tz.TZDateTime.now(tz.local);
-    var cible = tz.TZDateTime(tz.local, now.year, now.month, now.day, 5, 0);
+    var cible =
+        tz.TZDateTime(tz.local, now.year, now.month, now.day, heure, minute);
     if (!cible.isAfter(now)) {
       cible = cible.add(const Duration(days: 1));
     }
@@ -143,11 +184,15 @@ class NotificationService {
 
   /// [son] : mode choisi par l'utilisateur pour CETTE alarme — 'shofar',
   /// 'cloche' ou 'harpe' (ressource native res/raw/<nom>.mp3) ou 'silence'
-  /// (vibration seule : playSound désactivé).
+  /// (vibration seule : playSound désactivé). Chaque mode a SON CANAL
+  /// (créé avec le son embarqué — voir _creerCanauxAndroid), garantissant
+  /// la sonnerie même lorsque l'application est fermée.
   NotificationDetails _details({required bool vibration, required String son}) {
-    final sonActif = son != 'silence';
+    const modesConnus = ['shofar', 'cloche', 'harpe'];
+    final sonActif = modesConnus.contains(son);
+    final canal = sonActif ? 'alarmes_$son' : 'alarmes_silence';
     final android = AndroidNotificationDetails(
-      'alarmes_celestes',
+      canal,
       'Alarmes spirituelles Horloge Céleste',
       channelDescription:
           'RHEMA du matin, préparation du soir et RHEMA du soir',

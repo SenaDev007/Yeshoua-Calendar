@@ -24,7 +24,25 @@ class HorlogeScreen extends ConsumerWidget {
     final periode = etat.periode;
 
     final enNuit = periode is NuitEnCours;
-    final enJour = periode is JourEnCours;
+
+    // Bornes RÉELLES de l'arc du cadran analogique (§6.2) : coucher → lever
+    // la nuit, lever → coucher le jour — miroir de BiblicalTimeEngine.
+    DateTime? coucherArc, leverArc;
+    if (etat.solarJour?.calculable ?? false) {
+      if (enNuit) {
+        if (etat.solarJour!.coucher != null &&
+            !etat.maintenant.isBefore(etat.solarJour!.coucher!)) {
+          coucherArc = etat.solarJour!.coucher;
+          leverArc = etat.solarSuivant?.lever;
+        } else {
+          coucherArc = etat.solarPrecedent?.coucher;
+          leverArc = etat.solarJour!.lever;
+        }
+      } else {
+        leverArc = etat.solarJour!.lever;
+        coucherArc = etat.solarJour!.coucher;
+      }
+    }
 
     final labelPeriode = periode is NuitEnCours
         ? _numeroVeille((periode).veille.indice)
@@ -88,6 +106,8 @@ class HorlogeScreen extends ConsumerWidget {
                         labelPeriode: labelPeriode,
                         sousLabelPeriode: sousLabel,
                         nuit: enNuit,
+                        coucherArc: coucherArc,
+                        leverArc: leverArc,
                       ),
                     ),
                     const SizedBox(height: 14),

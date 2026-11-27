@@ -57,38 +57,49 @@ void main() {
     // Régression : l'équation du temps exige y = tan²(ε₀/2). Avec un simple
     // tan(ε₀/2), les couchers étaient décalés de ~±25-35 min selon la
     // saison (ex. Cotonou 27/11 : 17:58 au lieu de 18:31 publié).
-    test('Cotonou 27/11/2026 — coucher = 18:31-18:32 locales (publié 18:31)',
+    //
+    // Les assertions portent sur les INSTANTS UTC : le moteur renvoie des
+    // horaires en heure locale de la machine de calcul (comportement voulu
+    // pour l'app — le téléphone de l'utilisateur), donc .toUtc() est le
+    // seul référentiel stable d'une machine à l'autre. Les références
+    // NOAA sont converties : Cotonou 18:31 UTC+1 = 17:31 UTC ; Jérusalem
+    // 16:35 UTC+2 = 14:35 UTC ; midi solaire 12:38 UTC+1 = 11:38 UTC.
+    test('Cotonou 27/11/2026 — coucher = 17:31-17:32 UTC (publié 18:31 UTC+1)',
         () {
       final solar = SolarEngine.calculer(DateTime(2026, 11, 27), 6.3654, 2.4183);
       expect(solar.calculable, isTrue);
-      final coucher = solar.coucher!;
+      final coucher = solar.coucher!.toUtc();
       expect(coucher.hour * 60 + coucher.minute,
-          inInclusiveRange(18 * 60 + 29, 18 * 60 + 33),
-          reason: 'timeanddate publie 18:31 pour Cotonou le 27/11/2026');
+          inInclusiveRange(17 * 60 + 29, 17 * 60 + 33),
+          reason: 'timeanddate publie 18:31 (UTC+1) pour Cotonou le 27/11/2026');
     });
 
-    test('Jérusalem 27/11/2026 — coucher ≈ 16:35-16:37 locales', () {
+    test('Jérusalem 27/11/2026 — coucher ≈ 14:35-14:36 UTC (16:35-16:37 UTC+2)',
+        () {
       final solar =
           SolarEngine.calculer(DateTime(2026, 11, 27), latJerusalem, lonJerusalem);
       expect(solar.calculable, isTrue);
-      final coucher = solar.coucher!;
+      final coucher = solar.coucher!.toUtc();
       expect(coucher.hour * 60 + coucher.minute,
-          inInclusiveRange(16 * 60 + 33, 16 * 60 + 39),
-          reason: 'référence NOAA pleine précision : 16:35-16:36 locales');
+          inInclusiveRange(14 * 60 + 33, 14 * 60 + 39),
+          reason: 'référence NOAA pleine précision : 16:35-16:36 UTC+2');
     });
 
     test('équation du temps : ancrage NOAA (jan ≈ −3 min, nov ≈ +12 min)', () {
       // Sans accès public à EqT, on la retrouve par différence : le midi
-      // solaire local = 12:00 + (4·lon + EqT − tz)/60... ancrage indirect
-      // via le midi solaire de Cotonou (lon 2.4183, UTC+1) :
-      // 27/11 : EqT ≈ +12,6 min → midi solaire ≈ 12:40 locales.
+      // solaire UTC = 12:00 UTC + (−4·lon − EqT)... ancrage indirect
+      // via le midi solaire de Cotonou (lon 2.4183) :
+      // 27/11 : EqT ≈ +12,6 min → midi solaire ≈ 11:38 UTC (= 12:38 UTC+1).
       final solar = SolarEngine.calculer(DateTime(2026, 11, 27), 6.3654, 2.4183);
-      // Midi solaire = moyenne de lever et coucher (symétrie de la formule).
-      final leverMin = solar.lever!.hour * 60 + solar.lever!.minute;
-      final coucherMin = solar.coucher!.hour * 60 + solar.coucher!.minute;
-      final midiMinutes = ((leverMin + coucherMin) / 2).round();
-      expect(midiMinutes, inInclusiveRange(12 * 60 + 34, 12 * 60 + 42),
-          reason: 'EqT +12-13 min ⇒ midi solaire local ≈ 12:38 (UTC+1, lon 2.42°)');
+      // Midi solaire = moyenne de lever et coucher (symétrie de la formule),
+      // exprimé en UTC pour rester stable d'une machine à l'autre.
+      final lever = solar.lever!.toUtc();
+      final coucher = solar.coucher!.toUtc();
+      final midiMinutes = (lever.hour * 60 + lever.minute +
+              coucher.hour * 60 + coucher.minute) ~/
+          2;
+      expect(midiMinutes, inInclusiveRange(11 * 60 + 34, 11 * 60 + 42),
+          reason: 'EqT +12-13 min ⇒ midi solaire ≈ 11:38 UTC (12:38 UTC+1, lon 2.42°)');
     });
   });
 
