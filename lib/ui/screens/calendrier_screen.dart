@@ -1,7 +1,8 @@
 /// ⭐ ÉCRAN CALENDRIER (§7) — REPRODUCTION FIDÈLE du calendrier biblique
-/// de 364 jours déjà implémenté dans Yeshua Connect Mobile (vues
-/// « Aujourd'hui », grille mensuelle 12 mois, fêtes de l'Éternel par
-/// année), MAIS :
+/// de 364 jours déjà implémenté dans Yeshua Connect Mobile, HABILLÉ du
+/// design du projet web « calendrier de YHWH » (en-tête radial, grille
+/// alignée sur les jours de semaine, clic sur une date → fiche détaillée
+/// avec zones et légendes, mode grille / mode cartes) :
 ///   • moteur LOCAL hors connexion (parité 100 % avec le backend,
 ///     prouvée par les tests du package horloge_celeste_engine) ;
 ///   • palette officielle Horloge Céleste (bleu céleste / or solaire / ivoire) ;
@@ -17,8 +18,11 @@ import 'package:horloge_celeste_engine/horloge_celeste_engine.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/models/formatters.dart';
 import '../../state/horloge_controller.dart';
+import '../widgets/calendrier_grille.dart';
 import '../widgets/carte_saisonniere.dart';
 import '../widgets/cartes.dart';
+import '../widgets/fetes_et_saisons.dart';
+import '../widgets/fiche_jour.dart';
 
 class CalendrierScreen extends ConsumerStatefulWidget {
   const CalendrierScreen({super.key});
@@ -31,6 +35,8 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen> {
   int _moisCourant = 1;
   int _decalageAnnee = 0; // navigation ◀ ▶ entre années
   bool _moisInitialise = false;
+  bool _modeCartes = false; // mode de visualisation : grille ou cartes
+  JourBiblique? _jourSelectionne;
 
   @override
   Widget build(BuildContext context) {
@@ -46,6 +52,7 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen> {
       _moisInitialise = true;
       final j = annee.jourPourDate(DateTime.now());
       _moisCourant = j?.mois ?? 1;
+      _jourSelectionne = j;
     }
 
     return DefaultTabController(
@@ -67,7 +74,7 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen> {
             child: TabBarView(
               children: [
                 _vueAujourdhui(etat, annee),
-                _vueMensuelle(annee),
+                _vueMensuelle(annee, etat),
                 _vueAnnees(annee, etat),
               ],
             ),
@@ -399,216 +406,199 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen> {
     );
   }
 
-  // ─── Vue 2 : grille du mois biblique (miroir du calendrier existant) ──
+  // ─── Vue 2 : vue mensuelle — design web (en-tête radial, grille, cartes,
+  //     clic sur une date → fiche détaillée, légendes) ───────────────────
 
-  Widget _vueMensuelle(AnneeBiblique annee) {
+  Widget _vueMensuelle(AnneeBiblique annee, HorlogeState etat) {
     final joursMois = annee.joursDuMois(_moisCourant);
     final nomMois = joursMois.isNotEmpty ? joursMois.first.nomMois : '';
+    final saisonImage = ImageSaison.depuisTrimestre(((_moisCourant - 1) ~/ 3) + 1);
+    final saison = ImageSaison.noms[saisonImage]!;
+    final fetesParJour = _fetesPourMois(annee, joursMois);
+    final jourDuJour = annee.jourPourDate(etat.maintenant);
+    final jourSelectionneEffectif = _jourSelectionne;
 
-    // Fêtes du mois (dateBiblique « 14 Aviv » → jour + mois).
-    final feteParJour = <int, FeteBiblique>{};
-    for (final fete in annee.fetes) {
-      final parts = fete.dateBiblique.split(' ');
-      if (parts.length < 2) continue;
-      final numero = int.tryParse(parts[0]);
-      final nom = parts.sublist(1).join(' ').trim();
-      if (numero != null && nom == nomMois) feteParJour[numero] = fete;
-    }
-
-    final aujourdhui = DateTime.now();
+    // La fête couvrant le jour sélectionné (durée > 1 jour comprise).
+    final fetesSelectionnees = jourSelectionneEffectif != null
+        ? fetesDuJour(annee, jourSelectionneEffectif)
+        : const <FeteBiblique>[];
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 24),
       children: [
-        // Frise saisonnière — embellissement identique à la vue mensuelle
-        // de la page web (image de saison sous voile dégradé).
-        FriseSaisonnier(
-          saison: ImageSaison.depuisTrimestre(((_moisCourant - 1) ~/ 3) + 1),
-          titre: 'Mois $_moisCourant · ${ImageSaison.noms[ImageSaison.depuisTrimestre(((_moisCourant - 1) ~/ 3) + 1)]}',
-          sousTitre: 'Grille du mois biblique — Shabbats dorés, fêtes surlignées',
+        // ── En-tête radial — miroir du CalendarHeader.tsx web ──
+        EnTeteRadialCalendrier(
+          annee: annee,
+          mois: _moisCourant,
+          jourDuJour: jourDuJour,
+          sousTitreMois:
+              'Saison de $saison · Shabbats dorés · Fêtes surlignées — '
+              'touchez une date pour ouvrir sa fiche détaillée.',
+          onMoisPrecedent:
+              _moisCourant > 1 ? () => setState(() => _moisCourant--) : null,
+          onMoisSuivant:
+              _moisCourant < 12 ? () => setState(() => _moisCourant++) : null,
+          onAnneePrecedente: _decalageAnnee >
+                  (BiblicalCalendarEngine.anneeMin - annee.annee)
+              ? () => setState(() => _decalageAnnee--)
+              : null,
+          onAnneeSuivante: _decalageAnnee <
+                  (BiblicalCalendarEngine.anneeMax - annee.annee)
+              ? () => setState(() => _decalageAnnee++)
+              : null,
+          onAujourdhui: () {
+            final j = annee.jourPourDate(DateTime.now());
+            setState(() {
+              _decalageAnnee = 0;
+              if (j != null) {
+                _moisCourant = j.mois;
+                _jourSelectionne = j;
+              }
+            });
+          },
+          onOuvrirFetes: () => ouvrirFetesEtSaisons(context, annee),
         ),
-        const SizedBox(height: 10),
-        // En-tête mois ◀ ▶
-        Row(
-          children: [
-            IconButton(
-              icon: const Icon(Icons.chevron_left, color: AppColors.bleuCiel),
-              onPressed: _moisCourant > 1
-                  ? () => setState(() => _moisCourant--)
-                  : null,
+        const SizedBox(height: 12),
+
+        // ── Sélecteur de mode de visualisation (grille / cartes) ──
+        SegmentedButton<bool>(
+          selected: {_modeCartes},
+          style: ButtonStyle(
+            backgroundColor: WidgetStateProperty.resolveWith((states) =>
+                states.contains(WidgetState.selected)
+                    ? AppColors.bleuCiel
+                    : AppColors.blanc),
+            foregroundColor: WidgetStateProperty.resolveWith((states) =>
+                states.contains(WidgetState.selected)
+                    ? AppColors.blanc
+                    : AppColors.grisSecondaire),
+            side: WidgetStateProperty.all(
+                BorderSide(color: AppColors.bleuCiel.withValues(alpha: 0.4))),
+            textStyle: WidgetStateProperty.all(
+              const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800),
             ),
-            Expanded(
-              child: Column(
-                children: [
-                  Text(
-                    nomMois,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: AppColors.bleuCielFonce,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 17,
-                    ),
-                  ),
-                  Text(
-                    'Mois $_moisCourant · ${joursMois.length} jours · ${annee.libelle}',
-                    style: const TextStyle(
-                      color: AppColors.grisSecondaire,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
+          ),
+          segments: const [
+            ButtonSegment<bool>(
+              value: false,
+              icon: Icon(Icons.calendar_view_month_rounded, size: 16),
+              label: Text('Grille'),
             ),
-            IconButton(
-              icon: const Icon(Icons.chevron_right, color: AppColors.bleuCiel),
-              onPressed: _moisCourant < 12
-                  ? () => setState(() => _moisCourant++)
-                  : null,
+            ButtonSegment<bool>(
+              value: true,
+              icon: Icon(Icons.view_agenda_outlined, size: 16),
+              label: Text('Cartes'),
             ),
           ],
+          onSelectionChanged: (selection) =>
+              setState(() => _modeCartes = selection.first),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
 
-        // En-tête des 7 jours de la semaine biblique.
-        const Row(
-          children: [
-            for (final j in ['J1', 'J2', 'J3', 'J4', 'J5', 'J6', 'Shabbat'])
-              Expanded(
-                child: Center(
-                  child: Text(
-                    j,
-                    style: TextStyle(
-                      color: AppColors.grisSecondaire,
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.4,
-                    ),
+        // ── Grille ou cartes — transition animée (vivacité du web) ──
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 280),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          transitionBuilder: (enfant, animation) => FadeTransition(
+            opacity: animation,
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0, 0.04),
+                end: Offset.zero,
+              ).animate(animation),
+              child: enfant,
+            ),
+          ),
+          child: _modeCartes
+              ? Container(
+                  key: ValueKey('cartes-$_moisCourant-$_decalageAnnee'),
+                  child: CartesMois(
+                    joursMois: joursMois,
+                    fetesParJour: fetesParJour,
+                    jourSelectionne: jourSelectionneEffectif,
+                    onJourTape: (j) => setState(() => _jourSelectionne = j),
+                  ),
+                )
+              : Container(
+                  key: ValueKey('grille-$_moisCourant-$_decalageAnnee'),
+                  child: GrilleMois(
+                    joursMois: joursMois,
+                    fetesParJour: fetesParJour,
+                    jourSelectionne: jourSelectionneEffectif,
+                    onJourTape: (j) => setState(() => _jourSelectionne = j),
                   ),
                 ),
-              ),
-          ],
-        ),
-        const SizedBox(height: 6),
-
-        // Grille.
-        Container(
-          decoration: BoxDecoration(
-            color: AppColors.blanc,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.ardoisePastel),
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: Table(
-            border: TableBorder.all(
-              color: AppColors.ardoisePastel.withValues(alpha: 0.7),
-              width: 0.7,
-            ),
-            children: [
-              for (var ligne = 0; ligne < (joursMois.length / 7).ceil(); ligne++)
-                TableRow(
-                  children: [
-                    for (var col = 0; col < 7; col++)
-                      _celluleJour(
-                        joursMois: joursMois,
-                        index: ligne * 7 + col,
-                        feteParJour: feteParJour,
-                        aujourdhui: aujourdhui,
-                      ),
-                  ],
-                ),
-            ],
-          ),
         ),
         const SizedBox(height: 14),
 
-        // Fêtes du mois.
-        if (feteParJour.isNotEmpty) ...[
-          TitreSection(
-            'Fêtes du mois',
-            icone: Icons.celebration_outlined,
-            couleur: AppColors.orSolaire,
+        // ── ZONE DE DÉTAIL — la fiche du jour cliqué (miroir DateInfo web) ──
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 300),
+          switchInCurve: Curves.easeOutCubic,
+          transitionBuilder: (enfant, animation) => FadeTransition(
+            opacity: animation,
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0, 0.05),
+                end: Offset.zero,
+              ).animate(animation),
+              child: enfant,
+            ),
           ),
-          for (final f in feteParJour.values)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Builder(builder: (context) {
-                final joursRestants = BiblicalCalendarEngine.joursRestants(f);
-                return _carteFete(f, joursRestants);
-              }),
+          child: jourSelectionneEffectif != null
+              ? Container(
+                  key: ValueKey(
+                      'fiche-${jourSelectionneEffectif.jourDeAnnee}-${jourSelectionneEffectif.dateGregorienne.year}'),
+                  child: FicheJour(
+                    jour: jourSelectionneEffectif,
+                    annee: annee,
+                    fetes: fetesSelectionnees,
+                  ),
+                )
+              : const SizedBox.shrink(),
+        ),
+        const SizedBox(height: 14),
+
+        // ── LÉGENDE affichée APRÈS la zone de détail (miroir Legend web) ──
+        const LegendeCalendrier(),
+        const SizedBox(height: 14),
+
+        // ── Fêtes du mois ──
+        TitreSection(
+          'Fêtes du mois de $nomMois',
+          icone: Icons.celebration_outlined,
+          couleur: AppColors.orSolaire,
+        ),
+        if (fetesParJour.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppColors.blanc.withValues(alpha: 0.8),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                  color: AppColors.ardoisePastel.withValues(alpha: 0.7)),
             ),
-        ],
+            child: const Text(
+              'Aucune convocation sainte ce mois — les shabbats hebdomadaires '
+              'rythment seuls le temps de l\u2019alliance.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.grisSecondaire, fontSize: 12),
+            ),
+          )
+        else
+          for (final entree in fetesParJour.entries)
+            for (final f in entree.value)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Builder(builder: (context) {
+                  final joursRestants =
+                      BiblicalCalendarEngine.joursRestants(f);
+                  return _carteFete(f, joursRestants);
+                }),
+              ),
       ],
-    );
-  }
-
-  Widget _celluleJour({
-    required List<JourBiblique> joursMois,
-    required int index,
-    required Map<int, FeteBiblique> feteParJour,
-    required DateTime aujourdhui,
-  }) {
-    if (index >= joursMois.length) {
-      return const SizedBox(height: 56);
-    }
-    final j = joursMois[index];
-    final fete = feteParJour[j.jourDuMois];
-    final estAujourdhui = j.dateGregorienne.year == aujourdhui.year &&
-        j.dateGregorienne.month == aujourdhui.month &&
-        j.dateGregorienne.day == aujourdhui.day;
-
-    Color? fond;
-    Color texte = AppColors.ardoise;
-    if (j.estShabbat) {
-      fond = AppColors.orSolaire.withValues(alpha: 0.14);
-      texte = AppColors.orFonce;
-    }
-    if (fete != null) {
-      fond = AppColors.depuisHex(fete.couleur).withValues(alpha: 0.22);
-    }
-
-    return TableCell(
-      child: Container(
-        height: 56,
-        decoration: BoxDecoration(
-          color: fond,
-          border: estAujourdhui
-              ? Border.all(color: AppColors.bleuCiel, width: 2)
-              : null,
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              '${j.jourDuMois}',
-              style: TextStyle(
-                color: texte,
-                fontSize: 14,
-                fontWeight: j.estShabbat || fete != null
-                    ? FontWeight.w800
-                    : FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              '${j.dateGregorienne.day}/${j.dateGregorienne.month}',
-              style: TextStyle(
-                color: AppColors.grisSecondaire.withValues(alpha: 0.75),
-                fontSize: 8.5,
-              ),
-            ),
-            if (fete != null)
-              Container(
-                width: 5,
-                height: 5,
-                margin: const EdgeInsets.only(top: 2),
-                decoration: BoxDecoration(
-                  color: AppColors.depuisHex(fete.couleur),
-                  shape: BoxShape.circle,
-                ),
-              ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -671,6 +661,35 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen> {
           ],
         ),
         const SizedBox(height: 8),
+        // Bouton d'ouverture du panneau complet « Fêtes & saisons ».
+        Material(
+          color: AppColors.bleuCiel.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(12),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () => ouvrirFetesEtSaisons(context, annee),
+            child: const Padding(
+              padding: EdgeInsets.symmetric(vertical: 11),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.auto_awesome_rounded,
+                      size: 15, color: AppColors.bleuCiel),
+                  SizedBox(width: 7),
+                  Text(
+                    'Ouvrir « Fêtes & saisons » — le tour complet de l\u2019année',
+                    style: TextStyle(
+                      color: AppColors.bleuCiel,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 12.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
         for (final fete in fetesTriees)
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
@@ -679,5 +698,41 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen> {
           ),
       ],
     );
+  }
+
+  // ─── Aides ────────────────────────────────────────────────────────────
+
+  /// Fêtes du mois indexées par jourDuMois — la DURÉE de chaque fête est
+  /// parcourue (une fête de 7 jours surligne ses 7 jours, comme la page web).
+  Map<int, List<FeteBiblique>> _fetesPourMois(
+      AnneeBiblique annee, List<JourBiblique> joursMois) {
+    final longueurMois = joursMois.length;
+    final map = <int, List<FeteBiblique>>{};
+    for (final fete in annee.fetes) {
+      final debut = annee.jourPourDate(fete.dateGregorienne);
+      if (debut == null || debut.mois != _moisCourant) continue;
+      for (var k = 0; k < fete.dureeJours; k++) {
+        final jourCible = debut.jourDuMois + k;
+        if (jourCible > longueurMois) break;
+        map.putIfAbsent(jourCible, () => <FeteBiblique>[]).add(fete);
+      }
+    }
+    return map;
+  }
+
+  /// Les fêtes couvrant un jour donné (n'importe quel mois) — la durée de
+  /// chaque fête est incluse, comme le faisait le « getHolidaysForDate » web.
+  List<FeteBiblique> fetesDuJour(AnneeBiblique annee, JourBiblique jour) {
+    final resultat = <FeteBiblique>[];
+    for (final fete in annee.fetes) {
+      final debut = annee.jourPourDate(fete.dateGregorienne);
+      if (debut == null || debut.mois != jour.mois) continue;
+      final dernierJour = debut.jourDuMois + fete.dureeJours - 1;
+      if (jour.jourDuMois >= debut.jourDuMois &&
+          jour.jourDuMois <= dernierJour) {
+        resultat.add(fete);
+      }
+    }
+    return resultat;
   }
 }
