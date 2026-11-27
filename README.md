@@ -184,7 +184,7 @@ Tout ce qui pouvait être préparé avant le dépôt est en place :
   (hors dépôt Git — modèle sans secret dans `android/key.properties.example`).
   `flutter build appbundle --release` signe automatiquement. Sauvegarde du
   keystore + mot de passe livrée à part (`cles-play-store.zip`).
-- **Version** : `1.0.0+1` (`pubspec.yaml`) — incrémenter le code à chaque dépôt.
+- **Version** : `1.0.0+2` (`pubspec.yaml`) — incrémenter le code à chaque dépôt (le code 1 est déjà consommé sur Play).
 - **Identifiant** : `com.yehiortech.horlogeceleste` (aucun `com.example`), targetSdk 36.
 - **Graphiques** (`play-store/`) : logo 512×512 **fond blanc**,
   affiche 1024×500 opaque, 4 rendus d'écrans 1080×1920 (maquettes fidèles au
