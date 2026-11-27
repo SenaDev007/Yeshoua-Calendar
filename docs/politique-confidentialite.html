@@ -7,87 +7,169 @@
 <style>
   body { font-family: Georgia, "Times New Roman", serif; color: #1E293B;
          background: #F5F0E6; margin: 0; }
-  .page { max-width: 760px; margin: 0 auto; background: #FFFFFF;
+  .page { max-width: 780px; margin: 0 auto; background: #FFFFFF;
           padding: clamp(1.2rem, 4vw, 3rem); min-height: 100vh; }
   h1 { color: #1E293B; border-bottom: 3px solid #CFA63A; padding-bottom: .4rem;
-       font-size: clamp(1.5rem, 5vw, 2.2rem); }
-  h2 { color: #2563EB; font-size: clamp(1.15rem, 4vw, 1.5rem); margin-top: 2rem; }
+       font-size: clamp(1.5rem, 5vw, 2.2rem); line-height: 1.25; }
+  h2 { color: #2563EB; font-size: clamp(1.15rem, 4vw, 1.4rem); margin-top: 2rem; }
   .or { color: #A9832C; font-weight: bold; }
   .carte { background: #F5F0E6; border-left: 4px solid #CFA63A;
            padding: 1rem 1.2rem; border-radius: 8px; margin: 1rem 0; }
+  .carte.bleu { background: #EFF6FF; border-left-color: #3B82F6; }
   ul { line-height: 1.7; }
   p, li { line-height: 1.7; }
   .maj { color: #64748B; font-size: .95rem; }
+  .table-scroll { overflow-x: auto; margin: 1rem 0; -webkit-overflow-scrolling: touch; }
+  table { width: 100%; border-collapse: collapse; font-size: .92rem; min-width: 480px; }
+  th { background: #2563EB; color: #FFFFFF; text-align: left;
+       padding: .55rem .8rem; font-weight: bold; }
+  td { padding: .55rem .8rem; border-bottom: 1px solid rgba(30,41,59,.12);
+       vertical-align: top; }
+  tr:nth-child(even) td { background: rgba(59,130,246,.045); }
+  code { background: rgba(30,41,59,.07); border-radius: 4px; padding: .1rem .35rem;
+         font-family: Consolas, monospace; font-size: .9em; }
 </style>
 </head>
 <body>
 <div class="page">
 <h1>Politique de confidentialité — Horloge Céleste</h1>
-<p class="maj">Dernière mise à jour : 26 novembre 2026</p>
+<p class="maj">En vigueur depuis le 27 novembre 2026 · Éditeur : Yehior Tech (SènaDev) ·
+Package : <code>com.yehiortech.horlogeceleste</code></p>
 
 <p>La présente politique décrit le traitement des données par l'application
-mobile <strong>Horloge Céleste</strong> (identifiant
-<code>com.yehiortech.horlogeceleste</code>), éditée par l'équipe Yeshua Connect.
+mobile <strong>Horloge Céleste</strong> (« Le temps de l'alliance de l'Éternel »),
+calendrier biblique de 364 jours, horloge divine et alarmes spirituelles.
 L'application est conçue selon un principe de confidentialité maximale :
-<span class="or">elle ne collecte, ne stocke et ne transmet aucune donnée
-personnelle</span>.</p>
+<span class="or">elle ne collecte, ne partage et ne transmet aucune donnée
+personnelle — tout reste sur votre appareil</span>.</p>
+
+<div class="carte"><strong>Résumé en une phrase :</strong> aucune donnée ne quitte
+votre téléphone. L'application fonctionne entièrement hors connexion ; tout ce
+qu'elle conserve est stocké dans l'espace privé de l'application et disparaît
+définitivement lors de sa désinstallation.</div>
 
 <h2>1. Aucune collecte de données</h2>
 <p>Horloge Céleste ne comporte ni compte utilisateur, ni inscription, ni
 serveur d'application, ni publicité, ni outil d'analyse (analytics), ni
-traçeur tiers. Aucune donnée nominative — nom, courriel, téléphone,
-identifiant publicitaire — n'est demandée, enregistrée ou partagée.</p>
+traçeur tiers, ni SDK de collecte. Aucune donnée nominative — nom, courriel,
+téléphone, identifiant publicitaire — n'est demandée, enregistrée ou
+partagée. L'application n'utilise aucun modèle d'intelligence artificielle
+génératif et n'envoie aucun contenu à un service distant.</p>
 
-<h2>2. Localisation (traitement local uniquement)</h2>
-<p>L'application peut demander la permission d'accéder à la localisation
-approximative ou précise afin de calculer les heures du lever et du coucher
-du soleil et d'ajuster les veilles selon votre région.</p>
-<div class="carte">Cette position est utilisée <strong>exclusivement en
-mémoire, sur votre appareil</strong>, au moment du calcul. Elle n'est
-<strong>ni enregistrée, ni transmise, ni vendue</strong> à qui que ce soit.
-Refuser la permission ne bloque pas l'application : les heures du calendrier
-biblique et les alarmes restent pleinement accessibles.</div>
+<h2>2. Données conservées localement sur votre appareil</h2>
+<p>Pour fonctionner, l'application enregistre quelques préférences dans le
+stockage privé Android (<em>SharedPreferences</em>), accessibles à elle
+seule :</p>
+<div class="table-scroll">
+<table>
+  <tr><th>Donnée</th><th>Contenu</th><th>Finalité</th></tr>
+  <tr><td><strong>Position</strong></td><td>latitude, longitude, libellé
+      (ex. « Cotonou, Bénin »), fuseau horaire, mode automatique ou manuel</td>
+      <td>calculer les heures réelles de lever et de coucher du soleil,
+      fondement du jour biblique, des veilles et des heures saisonnières</td></tr>
+  <tr><td><strong>Préférences d'affichage</strong></td><td>horloge numérique
+      ou analogique</td><td>afficher l'horloge divine selon votre choix</td></tr>
+  <tr><td><strong>Alarmes spirituelles</strong></td><td>activée/désactivée,
+      vibration, sonnerie, message de chaque alarme RHEMA (matin 05:00,
+      préparation du soir, coucher du soleil)</td>
+      <td>replanifier vos alarmes à chaque lancement et après redémarrage du
+      téléphone</td></tr>
+  <tr><td><strong>État temporel</strong></td><td>derniers horaires solaires
+      calculés, dernière date biblique synchronisée, marqueur anti-doublon</td>
+      <td>garantir le changement de jour au coucher réel sans alertes
+      répétées</td></tr>
+</table>
+</div>
+<p>Ces données ne quittent jamais l'appareil : elles ne sont ni envoyées vers
+un serveur, ni accessibles à d'autres applications, ni vendues.</p>
 
-<h2>3. Notifications et alarmes locales</h2>
+<h2>3. Localisation : accès ponctuel, en premier plan, jamais un suivi</h2>
+<p>L'accès à la position (approximative ou précise) est demandé uniquement
+pendant que l'application est ouverte au premier plan. Aucune localisation en
+arrière-plan, aucun historique de déplacement :</p>
+<ul>
+  <li>la position sert exclusivement au calcul des heures solaires locales ;</li>
+  <li>elle est enregistrée localement afin de ne pas être redemandée à chaque
+  ouverture ;</li>
+  <li>vous pouvez la refuser : l'application reste pleinement accessible avec
+  une position par défaut que vous pouvez définir manuellement ;</li>
+  <li>vous pouvez révoquer l'autorisation à tout moment dans les réglages
+  Android (Applications → Horloge Céleste → Autorisations).</li>
+</ul>
+
+<h2>4. Notifications et alarmes locales</h2>
 <p>Les alarmes RHEMA sont déclenchées par Android lui-même (alarmes exactes,
 notifications locales). Le contenu des notifications est généré sur
 l'appareil ; aucun serveur n'y participe et aucune information n'en sort.</p>
 
-<h2>4. Permissions utilisées</h2>
+<h2>5. Permissions utilisées</h2>
+<div class="table-scroll">
+<table>
+  <tr><th>Autorisation Android</th><th>Usage dans Horloge Céleste</th></tr>
+  <tr><td><code>ACCESS_COARSE_LOCATION</code> / <code>ACCESS_FINE_LOCATION</code></td>
+      <td>calcul des heures solaires, en premier plan uniquement, optionnel</td></tr>
+  <tr><td><code>POST_NOTIFICATIONS</code></td><td>afficher la notification de
+      votre alarme spirituelle au moment choisi</td></tr>
+  <tr><td><code>SCHEDULE_EXACT_ALARM</code> / <code>USE_EXACT_ALARM</code></td>
+      <td>sonner à l'heure exacte (par ex. 05:00 précises), même appareil au
+      repos</td></tr>
+  <tr><td><code>RECEIVE_BOOT_COMPLETED</code></td><td>replanifier les alarmes
+      après le redémarrage du téléphone</td></tr>
+  <tr><td><code>VIBRATE</code> / <code>WAKE_LOCK</code></td><td>vibrer et
+      maintenir brièvement l'appareil actif au moment de la sonnerie</td></tr>
+</table>
+</div>
+<p>Ces autorisations ne donnent accès à aucun contenu de vos autres
+applications et ne transmettent aucune donnée. Vous les contrôlez
+individuellement dans les réglages Android.</p>
+
+<h2>6. Ce que l'application ne fait jamais</h2>
 <ul>
-  <li><strong>Localisation (approximative et précise)</strong> — calcul des
-  heures solaires, sur l'appareil, optionnel.</li>
-  <li><strong>Notifications</strong> — affichage des rappels RHEMA.</li>
-  <li><strong>Alarmes exactes</strong> — déclenchement fiable des veilles.</li>
-  <li><strong>Vibration / réveil / démarrage au boot</strong> — fiabilité des
-  alarmes après redémarrage du téléphone.</li>
+  <li>elle ne crée aucun compte et ne demande aucune identité ;</li>
+  <li>elle ne contient aucune publicité ni aucun traceur ;</li>
+  <li>elle ne mesure pas votre usage et ne rapporte aucun plantage à un
+  service externe ;</li>
+  <li>elle ne partage ni ne vend quoi que ce soit, à personne ;</li>
+  <li>elle n'accède ni à vos contacts, ni à vos fichiers, ni à votre micro,
+  ni à votre caméra.</li>
 </ul>
 
-<h2>5. Conservation et suppression</h2>
-<p>Aucune donnée n'étant collectée, il n'existe rien à conserver ni à
-supprimer côté éditeur. Désinstaller l'application efface l'intégralité des
-données locales (préférences d'alarmes).</p>
+<h2>7. Conservation et suppression</h2>
+<p>Les préférences décrites à la section 2 sont conservées sur l'appareil tant
+que l'application y est installée. Pour les supprimer définitivement :
+<strong>désinstallez l'application</strong> — Android efface alors
+l'intégralité de son stockage privé, y compris la position enregistrée et les
+préférences d'alarmes. Aucune donnée n'étant détenue côté éditeur, il n'existe
+rien à conserver ni à supprimer sur nos serveurs.</p>
 
-<h2>6. Enfants</h2>
-<p>L'application ne s'adresse pas spécifiquement aux enfants de moins de 13
-ans et ne collecte par principe aucune donnée de quelque utilisateur que ce
-soit, quel que soit son âge.</p>
+<h2>8. Enfants</h2>
+<p>Horloge Céleste s'adresse aux personnes de 13 ans et plus. Elle ne comporte
+aucun contenu choquant, aucune interaction entre utilisateurs et aucun
+mécanisme incitant à la collecte de données. Comme elle ne collecte rien et ne
+transmet rien, aucune donnée d'enfant ne peut être traitée, même
+involontairement.</p>
 
-<h2>7. Vos droits (RGPD)</h2>
+<h2>9. Vos droits (RGPD)</h2>
 <p>Le règlement (UE) 2016/679 impose une base légale au traitement des
-données : aucun traitement de donnée personnelle n'étant effectué, aucun
-droit d'accès, de rectification ou d'effacement n'a d'objet. Pour toute
-question relative à cette politique, vous pouvez nous écrire via le dépôt
-public <em>github.com/SenaDev007/Yeshoua-Calendar</em> (section Issues).</p>
+données : aucun traitement de données personnelles n'étant effectué hors de
+votre appareil, aucun droit d'accès, de rectification ou d'effacement n'a
+d'objet — vous maîtrisez déjà intégralement les préférences locales, que la
+désinstallation efface en totalité. Pour toute question relative à cette
+politique :</p>
+<div class="carte bleu"><strong>Yehior Tech (SènaDev)</strong> —
+courriel : <a href="mailto:s.akpovitohou@gmail.com">s.akpovitohou@gmail.com</a>.
+Nous répondons dans les meilleurs délais à toute demande.</div>
 
-<h2>8. Modifications</h2>
+<h2>10. Modifications</h2>
 <p>Si une future version introduisait un traitement de données (par exemple
-une synchronisation), la présente politique serait mise à jour avant
-publication et l'entrée correspondante du formulaire « Sécurité des
-données » de Google Play serait actualisée.</p>
+une synchronisation), la présente politique serait mise à jour <strong>avant</strong>
+publication de la version concernée sur Google Play, avec une nouvelle date
+d'effet, et l'entrée correspondante du formulaire « Sécurité des données »
+serait actualisée. La version publiée à cette URL fait foi pour la version de
+l'application correspondante.</p>
 
 <p class="maj">Horloge Céleste — application gratuite, sans publicité,
-sans collecte de données.</p>
+sans collecte de données · Politique v1.1 · 27 novembre 2026</p>
 </div>
 </body>
 </html>
