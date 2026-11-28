@@ -347,6 +347,7 @@ class GrilleMois extends StatelessWidget {
     required this.fetesParJour,
     required this.jourSelectionne,
     required this.onJourTape,
+    this.jourEnCours,
     this.modeHebreu = false,
   });
 
@@ -354,6 +355,11 @@ class GrilleMois extends StatelessWidget {
   final Map<int, List<FeteBiblique>> fetesParJour;
   final JourBiblique? jourSelectionne;
   final ValueChanged<JourBiblique> onJourTape;
+
+  /// Date civile du jour biblique EN COURS (coucher du soleil réel) —
+  /// fournie par l'écran calendrier depuis l'état de l'horloge ; null →
+  /// repli sur la date civile (comportement historique).
+  final DateTime? jourEnCours;
 
   /// MODE HÉBRAÏQUE (§7) : en-têtes translittérés (Ehad … Shabbat).
   final bool modeHebreu;
@@ -375,6 +381,7 @@ class GrilleMois extends StatelessWidget {
             jour: j,
             fetes: fetesParJour[j.jourDuMois] ?? const [],
             estSelectionne: _memeJour(jourSelectionne, j),
+            jourEnCours: jourEnCours,
             onTape: onJourTape,
           ),
         ),
@@ -450,12 +457,17 @@ class CelluleJourAnimee extends StatefulWidget {
     required this.fetes,
     required this.estSelectionne,
     required this.onTape,
+    this.jourEnCours,
   });
 
   final JourBiblique jour;
   final List<FeteBiblique> fetes;
   final bool estSelectionne;
   final ValueChanged<JourBiblique> onTape;
+
+  /// Date civile du jour biblique en cours (§2.3) — surlignage
+  /// « aujourd'hui » conforme au coucher du soleil réel.
+  final DateTime? jourEnCours;
 
   @override
   State<CelluleJourAnimee> createState() => _CelluleJourAnimeeState();
@@ -502,8 +514,12 @@ class _CelluleJourAnimeeState extends State<CelluleJourAnimee>
   }
 
   bool get _estAujourdhui {
-    final d = DateTime.now();
     final g = widget.jour.dateGregorienne;
+    final ref = widget.jourEnCours;
+    if (ref != null) {
+      return g.year == ref.year && g.month == ref.month && g.day == ref.day;
+    }
+    final d = DateTime.now();
     return g.year == d.year && g.month == d.month && g.day == d.day;
   }
 
@@ -648,6 +664,7 @@ class CartesMois extends StatelessWidget {
     required this.fetesParJour,
     required this.jourSelectionne,
     required this.onJourTape,
+    this.jourEnCours,
     this.modeHebreu = false,
   });
 
@@ -655,6 +672,9 @@ class CartesMois extends StatelessWidget {
   final Map<int, List<FeteBiblique>> fetesParJour;
   final JourBiblique? jourSelectionne;
   final ValueChanged<JourBiblique> onJourTape;
+
+  /// Date civile du jour biblique en cours — surlignage « aujourd'hui ».
+  final DateTime? jourEnCours;
 
   /// MODE HÉBRAÏQUE (§7) : noms des jours translittérés sur les cartes.
   final bool modeHebreu;
@@ -675,6 +695,7 @@ class CartesMois extends StatelessWidget {
         jour: joursMois[index],
         fetes: fetesParJour[joursMois[index].jourDuMois] ?? const [],
         estSelectionne: GrilleMois._memeJour(jourSelectionne, joursMois[index]),
+        jourEnCours: jourEnCours,
         onTape: onJourTape,
         modeHebreu: modeHebreu,
       ),
@@ -689,6 +710,7 @@ class CarteJourAnimee extends StatefulWidget {
     required this.fetes,
     required this.estSelectionne,
     required this.onTape,
+    this.jourEnCours,
     this.modeHebreu = false,
   });
 
@@ -696,6 +718,10 @@ class CarteJourAnimee extends StatefulWidget {
   final List<FeteBiblique> fetes;
   final bool estSelectionne;
   final ValueChanged<JourBiblique> onTape;
+
+  /// Date civile du jour biblique en cours (§2.3) — surlignage
+  /// « aujourd'hui » conforme au coucher du soleil réel.
+  final DateTime? jourEnCours;
 
   /// MODE HÉBRAÏQUE (§7) : nom du jour translittéré (Yom Shabbat…).
   final bool modeHebreu;
@@ -745,8 +771,12 @@ class _CarteJourAnimeeState extends State<CarteJourAnimee>
   }
 
   bool get _estAujourdhui {
-    final d = DateTime.now();
     final g = widget.jour.dateGregorienne;
+    final ref = widget.jourEnCours;
+    if (ref != null) {
+      return g.year == ref.year && g.month == ref.month && g.day == ref.day;
+    }
+    final d = DateTime.now();
     return g.year == d.year && g.month == d.month && g.day == d.day;
   }
 

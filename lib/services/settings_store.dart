@@ -198,6 +198,11 @@ class SettingsStore {
     }
   }
 
+  /// Une position a-t-elle DÉJÀ été choisie/enregistrée ? (faux tant que
+  /// l'utilisateur n'a rien choisi — la détection automatique du pays au
+  /// premier lancement ne doit JAMAIS écraser un choix existant.)
+  bool positionEstConfiguree() => prefs.getString(clePosition) != null;
+
   Future<void> sauvegarderPosition(PositionUtilisateur p) =>
       prefs.setString(clePosition, jsonEncode(p.toJson()));
 

@@ -38,6 +38,18 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen>
   int _moisCourant = 1;
   int _decalageAnnee = 0; // navigation ◀ ▶ entre années
   bool _moisInitialise = false;
+
+  /// Date CIVILE du jour biblique EN COURS (§2.3 — le jour biblique
+  /// commence au coucher du soleil réel). Après le coucher, la date
+  /// biblique est déjà celle de DEMAIN civil : tous les surlignages
+  /// « aujourd'hui », les ancres de vue et les comptes à rebours J-x
+  /// doivent s'appuyer sur CETTE date — jamais sur minuit civil.
+  DateTime _dateJourEnCours(HorlogeState etat) {
+    final j = etat.jourBiblique?.dateGregorienne;
+    if (j != null) return DateTime(j.year, j.month, j.day);
+    final m = etat.maintenant;
+    return DateTime(m.year, m.month, m.day);
+  }
   bool _modeCartes = false; // mode de visualisation : grille ou cartes
   JourBiblique? _jourSelectionne;
   int _semaineCourante = 1;
@@ -61,27 +73,28 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen>
     // MODE HÉBRAÏQUE (§7) — translittération des jours du calendrier.
     final hebreu = ref.watch(settingsProvider).modeHebreu;
     final anneeReference = etat.anneeBiblique?.annee ??
-        BiblicalCalendarEngine.anneePourDate(DateTime.now()).annee;
+        BiblicalCalendarEngine.anneePourDate(_dateJourEnCours(etat)).annee;
     final anneeChoisie = (anneeReference + _decalageAnnee).clamp(
         BiblicalCalendarEngine.anneeMin, BiblicalCalendarEngine.anneeMax);
     final annee = BiblicalCalendarEngine.construireAnnee(anneeChoisie);
 
-    // Mois courant = celui qui contient aujourd'hui (init une seule fois).
+    // Mois / semaine / trimestre courants — ancrés sur le JOUR BIBLIQUE
+    // en cours (date civile après coucher = demain), init une seule fois.
     if (!_moisInitialise) {
       _moisInitialise = true;
-      final j = annee.jourPourDate(DateTime.now());
+      final j = annee.jourPourDate(_dateJourEnCours(etat));
       _moisCourant = j?.mois ?? 1;
       _jourSelectionne = j;
     }
     // Semaine et trimestre courants — même principe d'initialisation.
     if (!_semaineInitialisee) {
       _semaineInitialisee = true;
-      final j = annee.jourPourDate(DateTime.now());
+      final j = annee.jourPourDate(_dateJourEnCours(etat));
       _semaineCourante = j != null ? ((j.jourDeAnnee - 1) ~/ 7) + 1 : 1;
     }
     if (!_trimestreInitialise) {
       _trimestreInitialise = true;
-      final j = annee.jourPourDate(DateTime.now());
+      final j = annee.jourPourDate(_dateJourEnCours(etat));
       _trimestreCourant = j?.trimestre ?? 1;
     }
 
@@ -122,14 +135,17 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen>
   // ─── Vue 1 : aujourd'hui ────────────────────────────────────────────
 
   Widget _vueAujourdhui(HorlogeState etat, AnneeBiblique annee, bool hebreu) {
-    final jour = etat.jourBiblique ?? annee.jourPourDate(DateTime.now());
+    final jour = etat.jourBiblique ??
+        annee.jourPourDate(_dateJourEnCours(etat));
     final maintenant = etat.maintenant;
-    // Fêtes à venir (joursRestants ≥ 0).
+    // Fêtes à venir (joursRestants ≥ 0) — comptées depuis le jour
+    // BIBLIQUE en cours : le vendredi soir après coucher, le Shabbat est
+    // déjà « J-0 » (il a commencé), non « J-1 ».
     final fetesAVenir = annee.fetes
         .map((f) => (
               fete: f,
               joursRestants: BiblicalCalendarEngine.joursRestants(f,
-                  maintenant: maintenant)
+                  maintenant: _dateJourEnCours(etat))
             ))
         .where((x) => x.joursRestants >= 0)
         .toList()
@@ -172,9 +188,13 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen>
 
   Widget _carteJourBiblique(
       JourBiblique j, DateTime maintenant, HorlogeState etat, bool hebreu) {
-    final aujourdhui =
-        DateTime(maintenant.year, maintenant.month, maintenant.day);
-    final estJourCourant = j.dateGregorienne == aujourdhui;
+    // « EN COURS » = ce jour biblique EST le jour biblique actuel —
+    // comparaison par date civile du jour biblique (pas minuit civil).
+    final dateJourEnCours = etat.jourBiblique?.dateGregorienne;
+    final estJourCourant = dateJourEnCours != null &&
+        j.dateGregorienne.year == dateJourEnCours.year &&
+        j.dateGregorienne.month == dateJourEnCours.month &&
+        j.dateGregorienne.day == dateJourEnCours.day;
     final saisonImage = ImageSaison.depuisTrimestre(j.trimestre);
     final saison = ImageSaison.noms[saisonImage]!;
 
@@ -536,7 +556,8 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen>
 
   Widget _vueSemaine(AnneeBiblique annee, HorlogeState etat, bool hebreu) {
     final jours = _joursSemaine(annee, _semaineCourante);
-    final jourDuJour = annee.jourPourDate(etat.maintenant);
+    final jourDuJour =
+        etat.jourBiblique ?? annee.jourPourDate(_dateJourEnCours(etat));
 
     if (jours.isEmpty) {
       return ListView(
@@ -581,7 +602,7 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen>
         for (final j in jours)
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
-            child: _tuileJour(annee, j, hebreu),
+            child: _tuileJour(annee, j, hebreu, _dateJourEnCours(etat)),
           ),
         const SizedBox(height: 6),
         if (_jourSelectionne != null)
@@ -620,7 +641,10 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen>
           for (final f in fetesSemaine)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: _carteFete(f, BiblicalCalendarEngine.joursRestants(f)),
+              child: _carteFete(
+                  f,
+                  BiblicalCalendarEngine.joursRestants(f,
+                      maintenant: _dateJourEnCours(etat))),
             ),
       ],
     );
@@ -747,17 +771,19 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen>
   /// Tuile d'un jour de la semaine — liseré fête/shabbat, badge
   /// « Aujourd'hui », sélection → fiche détaillée. Dates ABRÉGÉES et noms
   /// de jours translittérés selon le mode (§7).
-  Widget _tuileJour(AnneeBiblique annee, JourBiblique j, bool hebreu) {
+  Widget _tuileJour(
+      AnneeBiblique annee, JourBiblique j, bool hebreu, DateTime jourEnCours) {
     final fetes = fetesDuJour(annee, j);
     final couleur =
         fetes.isNotEmpty ? AppColors.depuisHex(fetes.first.couleur) : null;
     final estSelectionne = _jourSelectionne != null &&
         _jourSelectionne!.jourDeAnnee == j.jourDeAnnee;
     final g = j.dateGregorienne;
-    final aujourdhui = DateTime.now();
-    final estAujourdhui = g.year == aujourdhui.year &&
-        g.month == aujourdhui.month &&
-        g.day == aujourdhui.day;
+    // « Aujourd'hui » biblique : date civile du jour biblique en cours
+    // (après le coucher du soleil, c'est déjà demain civil).
+    final estAujourdhui = g.year == jourEnCours.year &&
+        g.month == jourEnCours.month &&
+        g.day == jourEnCours.day;
     final bordure = estSelectionne
         ? AppColors.bleuCiel
         : estAujourdhui
@@ -1109,7 +1135,8 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen>
               Align(
                 alignment: Alignment.centerRight,
                 child: _boutonAujourdhui(() {
-                  final j = annee.jourPourDate(etat.maintenant);
+                  final j = etat.jourBiblique ??
+                      annee.jourPourDate(_dateJourEnCours(etat));
                   setState(() {
                     if (j != null) {
                       _trimestreCourant = j.trimestre;
@@ -1142,6 +1169,7 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen>
             joursMois: annee.joursDuMois(mois),
             fetesParJour: _fetesPourMois(annee, annee.joursDuMois(mois)),
             jourSelectionne: _jourSelectionne,
+            jourEnCours: _dateJourEnCours(etat),
             onJourTape: (j) => setState(() => _jourSelectionne = j),
             modeHebreu: hebreu,
           ),
@@ -1181,7 +1209,10 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen>
           for (final f in fetesSaison)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: _carteFete(f, BiblicalCalendarEngine.joursRestants(f)),
+              child: _carteFete(
+                  f,
+                  BiblicalCalendarEngine.joursRestants(f,
+                      maintenant: _dateJourEnCours(etat))),
             ),
       ],
     );
@@ -1197,7 +1228,8 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen>
         ImageSaison.depuisTrimestre(((_moisCourant - 1) ~/ 3) + 1);
     final saison = ImageSaison.noms[saisonImage]!;
     final fetesParJour = _fetesPourMois(annee, joursMois);
-    final jourDuJour = annee.jourPourDate(etat.maintenant);
+    final jourDuJour =
+        etat.jourBiblique ?? annee.jourPourDate(_dateJourEnCours(etat));
     final jourSelectionneEffectif = _jourSelectionne;
 
     // La fête couvrant le jour sélectionné (durée > 1 jour comprise).
@@ -1229,7 +1261,8 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen>
                   ? () => setState(() => _decalageAnnee++)
                   : null,
           onAujourdhui: () {
-            final j = annee.jourPourDate(DateTime.now());
+            final j = etat.jourBiblique ??
+                annee.jourPourDate(_dateJourEnCours(etat));
             setState(() {
               _decalageAnnee = 0;
               if (j != null) {
@@ -1299,6 +1332,7 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen>
                     joursMois: joursMois,
                     fetesParJour: fetesParJour,
                     jourSelectionne: jourSelectionneEffectif,
+                    jourEnCours: _dateJourEnCours(etat),
                     onJourTape: (j) => setState(() => _jourSelectionne = j),
                     modeHebreu: hebreu,
                   ),
@@ -1309,6 +1343,7 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen>
                     joursMois: joursMois,
                     fetesParJour: fetesParJour,
                     jourSelectionne: jourSelectionneEffectif,
+                    jourEnCours: _dateJourEnCours(etat),
                     onJourTape: (j) => setState(() => _jourSelectionne = j),
                     modeHebreu: hebreu,
                   ),
@@ -1378,7 +1413,8 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen>
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Builder(builder: (context) {
-                  final joursRestants = BiblicalCalendarEngine.joursRestants(f);
+                  final joursRestants = BiblicalCalendarEngine.joursRestants(f,
+                      maintenant: _dateJourEnCours(etat));
                   return _carteFete(f, joursRestants);
                 }),
               ),
@@ -1391,7 +1427,8 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen>
   Widget _vueAnnee(AnneeBiblique annee, HorlogeState etat) {
     final fetesTriees = [...annee.fetes]
       ..sort((a, b) => a.dateGregorienne.compareTo(b.dateGregorienne));
-    final aujourdhui = DateTime.now();
+    // Saison et J-x de la vue annuelle — ancrés sur le jour biblique.
+    final aujourdhui = _dateJourEnCours(etat);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
@@ -1461,9 +1498,9 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen>
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(child: _miniMois(annee, paire + 1)),
+                Expanded(child: _miniMois(annee, paire + 1, aujourdhui)),
                 const SizedBox(width: 8),
-                Expanded(child: _miniMois(annee, paire + 2)),
+                Expanded(child: _miniMois(annee, paire + 2, aujourdhui)),
               ],
             ),
           ),
@@ -1513,7 +1550,7 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen>
 
   static const _entetesMini = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
 
-  Widget _miniMois(AnneeBiblique annee, int mois) {
+  Widget _miniMois(AnneeBiblique annee, int mois, DateTime jourEnCours) {
     final jours = annee.joursDuMois(mois);
     if (jours.isEmpty) return const SizedBox.shrink();
     final decalage = jours.first.jourDeSemaine - 1;
@@ -1525,7 +1562,9 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen>
       for (final j in jours)
         Expanded(
           child: _caseMiniJour(
-              j, fetesDuMois[j.jourDuMois] ?? const <FeteBiblique>[]),
+              j,
+              fetesDuMois[j.jourDuMois] ?? const <FeteBiblique>[],
+              jourEnCours),
         ),
       for (var i = (decalage + jours.length) % 7; i > 0 && i < 7; i++)
         const Expanded(child: SizedBox.shrink()),
@@ -1582,12 +1621,12 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen>
 
   /// Une case compacte de la vue annuelle — tap → sélectionne le jour et
   /// bascule sur la vue mensuelle détaillée.
-  Widget _caseMiniJour(JourBiblique j, List<FeteBiblique> fetes) {
+  Widget _caseMiniJour(
+      JourBiblique j, List<FeteBiblique> fetes, DateTime jourEnCours) {
     final g = j.dateGregorienne;
-    final aujourdhui = DateTime.now();
-    final estAujourdhui = g.year == aujourdhui.year &&
-        g.month == aujourdhui.month &&
-        g.day == aujourdhui.day;
+    final estAujourdhui = g.year == jourEnCours.year &&
+        g.month == jourEnCours.month &&
+        g.day == jourEnCours.day;
     final aFete = fetes.isNotEmpty;
     final couleurFete = aFete ? AppColors.depuisHex(fetes.first.couleur) : null;
     final couleurFond = aFete
