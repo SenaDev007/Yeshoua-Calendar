@@ -1,18 +1,24 @@
 /// Écran de démarrage (loader) — première seconde de vie de l'application.
 ///
 /// Affiche le médaillon **animé** (le sablier qui s'écoule, la comète dorée qui
-/// parcourt la lunette graduée, la lueur centrale, les étincelles et le
-/// retournement masqué par un éclair) le temps que les préférences, le moteur
-/// d'alarmes et Riverpod finissent de s'initialiser, puis rejoint la coquille
-/// de navigation avec un fondu.
+/// parcourt la lunette graduée, la lueur centrale, les étincelles, les
+/// rouleaux qui « respirent », l'engrenage qui tourne, le texte hébraïque qui
+/// s'écrit de droite à gauche et le retournement masqué par un éclair) le
+/// temps que les préférences, le moteur d'alarmes et Riverpod finissent de
+/// s'initialiser, puis rejoint la coquille de navigation avec un fondu.
+///
+/// AMBIANCE SONORE : un tic-tac de montre (tick… tock…) retentit pendant le
+/// chargement — le temps d'observer l'horloge vivante — puis se tait à
+/// l'entrée dans l'application.
 ///
 /// Le fichier `assets/images/logo-horloge-celeste-anime.webp` est un WebP
 /// animé lu nativement par Flutter (comme un GIF, sans paquet additionnel) :
-/// la boucle de 2,5 s rejoue en continu l'écoulement du sable.
+/// la boucle de 2,5 s rejoue en continu toute la vie du médaillon.
 library;
 
 import 'dart:async';
 
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
@@ -26,16 +32,41 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen> {
   /// Durée d'affichage : un peu plus d'une boucle complète du logo (2,5 s),
-  /// le temps de voir le sablier se vider et se retourner une fois.
+  /// le temps de voir le sablier se vider, le texte s'écrire et se
+  /// retourner une fois.
   static const Duration _dureeAffichage = Duration(milliseconds: 3300);
+
+  AudioPlayer? _ticTac;
 
   @override
   void initState() {
     super.initState();
+    _jouerTicTac();
     Timer(_dureeAffichage, () {
       if (!mounted) return;
       Navigator.pushReplacementNamed(context, '/accueil');
     });
+  }
+
+  /// Le tic-tac d'horloge pendant le chargement (en boucle douce) : le son
+  /// de l'aiguille qui tourne, en écho à l'horloge biblique animée.
+  Future<void> _jouerTicTac() async {
+    try {
+      final lecteur = AudioPlayer(playerId: 'tic_tac_splash');
+      _ticTac = lecteur;
+      await lecteur.setReleaseMode(ReleaseMode.loop);
+      await lecteur.setVolume(0.55);
+      await lecteur.play(AssetSource('sounds/tictac.mp3'));
+    } catch (_) {
+      // Le son est un agrément : jamais de blocage du loader.
+    }
+  }
+
+  @override
+  void dispose() {
+    _ticTac?.stop();
+    _ticTac?.dispose();
+    super.dispose();
   }
 
   @override
