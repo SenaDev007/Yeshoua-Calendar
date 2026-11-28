@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Chaînes du fond d'écran animé (§9.5) — français. -->
+<resources>
+    <string name="wallpaper_description">Horloge Céleste — le cadran biblique 24 h sur votre écran de verrouillage, avec la prochaine alarme.</string>
+</resources>

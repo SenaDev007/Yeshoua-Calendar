@@ -1,11 +1,15 @@
-/// ⭐ SETTINGS CONTROLLER — préférences persistées (position, affichage).
+/// ⭐ SETTINGS CONTROLLER — préférences persistées (position, affichage,
+/// écran de verrouillage).
 library;
+
+import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/config/app_config.dart';
 import '../services/location_service.dart';
 import '../services/settings_store.dart';
+import '../services/wallpaper_service.dart';
 import 'horloge_controller.dart';
 
 /// État des paramètres affichés dans l'écran Paramètres.
@@ -13,6 +17,7 @@ class SettingsState {
   final PositionUtilisateur position;
   final bool horlogeAnalogique;
   final bool modeHebreu;
+  final bool trotteuseFluide;
   final bool chargement;
   final String? message;
 
@@ -20,6 +25,7 @@ class SettingsState {
     required this.position,
     required this.horlogeAnalogique,
     this.modeHebreu = false,
+    this.trotteuseFluide = true,
     this.chargement = false,
     this.message,
   });
@@ -28,6 +34,7 @@ class SettingsState {
     PositionUtilisateur? position,
     bool? horlogeAnalogique,
     bool? modeHebreu,
+    bool? trotteuseFluide,
     bool? chargement,
     String? message,
   }) =>
@@ -35,6 +42,7 @@ class SettingsState {
         position: position ?? this.position,
         horlogeAnalogique: horlogeAnalogique ?? this.horlogeAnalogique,
         modeHebreu: modeHebreu ?? this.modeHebreu,
+        trotteuseFluide: trotteuseFluide ?? this.trotteuseFluide,
         chargement: chargement ?? this.chargement,
         message: message,
       );
@@ -44,10 +52,14 @@ class SettingsController extends Notifier<SettingsState> {
   @override
   SettingsState build() {
     final store = SettingsStore.instance;
+    // L'écran de verrouillage lit cet instantané nativement : on le
+    // rafraîchit au démarrage (position + alarmes + préférences).
+    unawaited(WallpaperService.actualiserSnapshot());
     return SettingsState(
       position: store.position(),
       horlogeAnalogique: store.horlogeAnalogique(),
       modeHebreu: store.modeHebreu(),
+      trotteuseFluide: store.trotteuseFluide(),
     );
   }
 
@@ -95,6 +107,8 @@ class SettingsController extends Notifier<SettingsState> {
     state = state.copyWith(position: position);
     // Recalcul complet immédiat du moteur de temps (§9.2).
     ref.read(horlogeProvider.notifier).changerPosition(position);
+    // L'écran de verrouillage doit suivre la nouvelle position.
+    unawaited(WallpaperService.actualiserSnapshot());
   }
 
   Future<void> basculerHorlogeAnalogique(bool valeur) async {
@@ -107,6 +121,14 @@ class SettingsController extends Notifier<SettingsState> {
   Future<void> basculerModeHebreu(bool valeur) async {
     await SettingsStore.instance.sauvegarderModeHebreu(valeur);
     state = state.copyWith(modeHebreu: valeur);
+  }
+
+  /// ÉCRAN DE VERROUILLAGE (§9.5) : trotteuse FLUIDE (~30 img/s, plus
+  /// raffinée) ou TIC-TAC par seconde (économie de batterie maximale).
+  Future<void> basculerTrotteuseFluide(bool valeur) async {
+    await SettingsStore.instance.sauvegarderTrotteuseFluide(valeur);
+    state = state.copyWith(trotteuseFluide: valeur);
+    unawaited(WallpaperService.actualiserSnapshot());
   }
 }
 

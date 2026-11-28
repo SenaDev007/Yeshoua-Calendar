@@ -13,10 +13,33 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
+    <!-- Écran de verrouillage (§9.5) — fond d'écran animé OPTIONNEL :
+         required=false pour ne pas exclure les rares appareils sans
+         sélecteur de wallpapers animés. -->
+    <uses-feature
+        android:name="android.software.live_wallpaper"
+        android:required="false" />
+
     <application
         android:label="Horloge Céleste"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+
+        <!-- Fond d'écran animé « Horloge Céleste » : le cadran biblique
+             24 h + la prochaine alarme, affectable à l'ÉCRAN DE
+             VERROUILLAGE (Android 13+) ou à tout l'appareil. -->
+        <service
+            android:name=".wallpaper.HorlogeWallpaperService"
+            android:exported="true"
+            android:permission="android.permission.BIND_WALLPAPER">
+            <intent-filter>
+                <action android:name="android.service.wallpaper.WallpaperService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.service.wallpaper"
+                android:resource="@xml/wallpaper" />
+        </service>
+
 
         <activity
             android:name=".MainActivity"

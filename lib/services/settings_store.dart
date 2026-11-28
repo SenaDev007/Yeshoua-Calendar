@@ -176,6 +176,15 @@ class SettingsStore {
   static const cleHistoriqueNotifications = 'hc_historique_notifications';
   static const clePremierLancement = 'hc_premier_lancement';
 
+  // ── Écran de verrouillage (fond d'écran animé — §9.5) ──
+  /// Instantané JSON lu PAR LE SERVICE NATIF KOTLIN (partagé via
+  /// shared_preferences) : position, alarmes, mode de trotteuse.
+  static const cleSnapshotWallpaper = 'hc_wallpaper_snapshot';
+  /// La proposition « ajouter l'horloge au verrouillage » a déjà été montrée.
+  static const clePropositionVerrouillage = 'hc_proposition_verrouillage';
+  /// Trotteuse FLUIDE (~30 img/s) sinon tic-tac par seconde (économie).
+  static const cleTrotteuseFluide = 'hc_trotteuse_fluide';
+
   // ── Position (§9) ──
 
   PositionUtilisateur position() {
@@ -300,4 +309,22 @@ class SettingsStore {
 
   Future<void> marquerPremierLancement() =>
       prefs.setBool(clePremierLancement, true);
+
+  // ── Écran de verrouillage (§9.5) ──
+
+  String? snapshotWallpaper() => prefs.getString(cleSnapshotWallpaper);
+
+  Future<void> sauvegarderSnapshotWallpaper(String json) =>
+      prefs.setString(cleSnapshotWallpaper, json);
+
+  bool propositionVerrouillageVue() =>
+      prefs.getBool(clePropositionVerrouillage) ?? false;
+
+  Future<void> marquerPropositionVerrouillageVue() =>
+      prefs.setBool(clePropositionVerrouillage, true);
+
+  bool trotteuseFluide() => prefs.getBool(cleTrotteuseFluide) ?? true;
+
+  Future<void> sauvegarderTrotteuseFluide(bool v) =>
+      prefs.setBool(cleTrotteuseFluide, v);
 }

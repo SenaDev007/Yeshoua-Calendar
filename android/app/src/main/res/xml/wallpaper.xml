@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Métadonnées du fond d'écran animé « Horloge Céleste » (§9.5) :
+     vignette + description affichées par le sélecteur système Android. -->
+<wallpaper xmlns:android="http://schemas.android.com/apk/res/android"
+    android:thumbnail="@drawable/wallpaper_thumbnail"
+    android:description="@string/wallpaper_description" />

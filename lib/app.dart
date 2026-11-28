@@ -21,6 +21,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/config/app_config.dart';
 import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
+import 'services/settings_store.dart';
+import 'services/wallpaper_service.dart';
 import 'state/settings_controller.dart';
 import 'ui/screens/accueil_screen.dart';
 import 'ui/screens/alarmes_screen.dart';
@@ -77,6 +79,96 @@ class _CoquilleNavigationState extends ConsumerState<CoquilleNavigation> {
   void initState() {
     super.initState();
     _basculeAutomatique = Timer.periodic(_delaiBascule, (_) => _basculer());
+    // Proposition « écran de verrouillage » (§9.5) : UNE SEULE fois,
+    // après le premier rendu (le dialogue a besoin du contexte monté).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _proposerEcranVerrouillage();
+    });
+  }
+
+  /// Propose d'installer l'Horloge Céleste COMME ÉCRAN DE VERROUILLAGE
+  /// (fond d'écran animé affectable au verrouillage sur Android 13+, aux
+  /// deux écrans sinon). Une seule proposition — rejouable dans Paramètres.
+  Future<void> _proposerEcranVerrouillage() async {
+    final store = SettingsStore.instance;
+    if (store.propositionVerrouillageVue()) return;
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.blanc,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: AppColors.orSolaire.withValues(alpha: 0.55)),
+        ),
+        title: Row(
+          children: const [
+            Icon(Icons.lock_clock, color: AppColors.orSolaire, size: 26),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Sur votre écran\nde verrouillage',
+                style: TextStyle(
+                  color: AppColors.ardoise,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 17,
+                  height: 1.25,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Installez l\'horloge biblique 24 h comme fond d\'écran animé : '
+              'elle s\'affichera quand votre téléphone se verrouille, avec '
+              'vos alarmes programmées et la prochaine sonnerie.',
+              style: TextStyle(
+                color: AppColors.grisSecondaire,
+                fontSize: 12.5,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Sur Android 13+, choisissez « Écran de verrouillage » dans le '
+              'sélecteur : votre écran d\'accueil reste inchangé. Activable '
+              'ou désactivable à tout moment dans les Paramètres.',
+              style: TextStyle(
+                color: AppColors.grisSecondaire.withValues(alpha: 0.85),
+                fontSize: 11.5,
+                height: 1.4,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Plus tard'),
+          ),
+          FilledButton.icon(
+            icon: const Icon(Icons.wallpaper, size: 17),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.bleuCiel,
+              foregroundColor: AppColors.blanc,
+            ),
+            onPressed: () {
+              Navigator.of(context).pop();
+              WallpaperService.ouvrirChoix();
+            },
+            label: const Text('Ajouter l\'horloge'),
+          ),
+        ],
+      ),
+    );
+    // Marquage APRÈS le dialogue : si l'app est fermée pendant, la
+    // proposition sera repoussée au prochain lancement (jamais perdue).
+    await store.marquerPropositionVerrouillageVue();
   }
 
   @override

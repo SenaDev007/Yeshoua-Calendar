@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/config/app_config.dart';
 import '../../core/theme/app_colors.dart';
+import '../../services/wallpaper_service.dart';
 import '../../state/settings_controller.dart';
 import '../../state/horloge_controller.dart';
 import '../widgets/cartes.dart';
@@ -24,6 +25,26 @@ class _ParametresScreenState extends ConsumerState<ParametresScreen> {
   /// (203 États et territoires, hors connexion), un filtre est indispensable.
   final _recherche = TextEditingController();
   String _filtre = '';
+
+  /// État du fond d'écran animé (null = vérification en cours).
+  bool? _wallpaperActif;
+
+  @override
+  void initState() {
+    super.initState();
+    _verifierWallpaper();
+  }
+
+  Future<void> _verifierWallpaper() async {
+    final actif = await WallpaperService.estActif();
+    if (mounted) setState(() => _wallpaperActif = actif);
+  }
+
+  Future<void> _ouvrirSelecteurWallpaper() async {
+    await WallpaperService.ouvrirChoix();
+    // L'utilisateur revient du sélecteur : état réel rechargé.
+    await _verifierWallpaper();
+  }
 
   @override
   void dispose() {
@@ -294,6 +315,144 @@ class _ParametresScreenState extends ConsumerState<ParametresScreen> {
                   inactiveTrackColor: AppColors.grisSecondaire,
                   onChanged: (v) =>
                       ref.read(settingsProvider.notifier).basculerModeHebreu(v),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // ── ÉCRAN DE VERROUILLAGE (§9.5) — fond d'écran animé biblique ──
+          TitreSection('Écran de verrouillage', icone: Icons.lock_clock),
+          CarteCeleste(
+            enfant: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: AppColors.orSolaire.withValues(alpha: 0.12),
+                        border: Border.all(
+                            color: AppColors.orSolaire.withValues(alpha: 0.5)),
+                      ),
+                      child: const Icon(Icons.lock_clock,
+                          color: AppColors.orFonce, size: 21),
+                    ),
+                    const SizedBox(width: 13),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Horloge sur l\'écran de verrouillage',
+                            style: TextStyle(
+                              color: AppColors.ardoise,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 14,
+                            ),
+                          ),
+                          Text(
+                            _wallpaperActif == null
+                                ? 'Vérification…'
+                                : _wallpaperActif!
+                                    ? 'ACTIF — l\'Horloge Céleste est votre '
+                                        'fond d\'écran animé.'
+                                    : 'Inactif — installez l\'horloge en un '
+                                        'appui depuis le sélecteur.',
+                            style: TextStyle(
+                              color: _wallpaperActif == true
+                                  ? AppColors.succes
+                                  : AppColors.grisSecondaire,
+                              fontWeight: _wallpaperActif == true
+                                  ? FontWeight.w800
+                                  : FontWeight.w400,
+                              fontSize: 11.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    FilledButton.icon(
+                      icon: Icon(
+                        _wallpaperActif == true
+                            ? Icons.refresh
+                            : Icons.wallpaper,
+                        size: 16,
+                      ),
+                      label: Text(
+                        _wallpaperActif == true ? 'Gérer' : 'Activer',
+                        style: const TextStyle(fontSize: 12.5),
+                      ),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.bleuCiel,
+                        foregroundColor: AppColors.blanc,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
+                      ),
+                      onPressed: _ouvrirSelecteurWallpaper,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'Le cadran biblique 24 h s\'affiche sur votre écran de '
+                  'verrouillage — avec l\'heure biblique en cours, l\'arc du '
+                  'cycle écoulé depuis le coucher du soleil RÉEL et votre '
+                  'prochaine alarme. Android 13+ : choisissez « Écran de '
+                  'verrouillage » dans le sélecteur pour que votre écran '
+                  'd\'accueil reste inchangé. La désactivation se fait depuis '
+                  'le même sélecteur (choisir un autre fond d\'écran).',
+                  style: TextStyle(
+                    color: AppColors.grisSecondaire.withValues(alpha: 0.9),
+                    fontSize: 11.5,
+                    height: 1.4,
+                  ),
+                ),
+                const Divider(height: 24),
+                // Choix du MODE DE TROTTEUSE (les deux propositions).
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Trotteuse fluide',
+                            style: TextStyle(
+                              color: AppColors.ardoise,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 13,
+                            ),
+                          ),
+                          Text(
+                            'Balayage continu (~30 images/s), plus raffiné. '
+                            'Désactivée : tic-tac par seconde — économie '
+                            'de batterie maximale.',
+                            style: TextStyle(
+                              color: AppColors.grisSecondaire,
+                              fontSize: 11.5,
+                              height: 1.35,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Switch(
+                      value: settings.trotteuseFluide,
+                      activeColor: AppColors.orSolaire,
+                      activeTrackColor:
+                          AppColors.orSolaire.withValues(alpha: 0.55),
+                      inactiveThumbColor: AppColors.blanc,
+                      inactiveTrackColor: AppColors.grisSecondaire,
+                      onChanged: (v) => ref
+                          .read(settingsProvider.notifier)
+                          .basculerTrotteuseFluide(v),
+                    ),
+                  ],
                 ),
               ],
             ),

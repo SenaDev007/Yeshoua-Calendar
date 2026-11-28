@@ -16,6 +16,7 @@ import 'package:horloge_celeste_engine/horloge_celeste_engine.dart';
 
 import '../services/prayer_alarm_engine.dart';
 import '../services/settings_store.dart';
+import '../services/wallpaper_service.dart';
 import 'horloge_controller.dart';
 
 /// Une alarme spirituelle (RHEMA) telle qu'affichée dans l'écran Alarmes.
@@ -175,6 +176,10 @@ class AlarmsController extends Notifier<AlarmsState> {
     // Reprogrammation native si nécessaire (démarrage / changement).
     // Sérialisée par PrayerAlarmEngine (voir reprogrammer).
     unawaited(PrayerAlarmEngine.instance.reprogrammer(adapter: adapter));
+
+    // L'écran de verrouillage affiche la prochaine alarme : instantané
+    // à jour dès le démarrage et après chaque changement (§9.5).
+    unawaited(WallpaperService.actualiserSnapshot());
 
     return AlarmsState(
       alarmes: alarmes,
