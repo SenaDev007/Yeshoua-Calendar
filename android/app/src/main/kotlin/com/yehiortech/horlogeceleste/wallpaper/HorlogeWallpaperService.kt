@@ -198,6 +198,10 @@ class HorlogeWallpaperService : WallpaperService() {
             textAlign = Paint.Align.CENTER
             typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
         }
+        private val pAlarmeTxt = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            textAlign = Paint.Align.CENTER
+            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+        }
         private val pAiguille = Paint(Paint.ANTI_ALIAS_FLAG)
         private val pTrait = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             strokeCap = Paint.Cap.ROUND
@@ -634,7 +638,7 @@ class HorlogeWallpaperService : WallpaperService() {
                 intArrayOf(
                     0x660B1226,
                     0x260B1226,
-                    0x880B1226,
+                    0x880B1226.toInt(), // > Int.MAX : littéral Long → Int
                 ),
                 floatArrayOf(0f, 0.45f, 1f),
                 Shader.TileMode.CLAMP,
