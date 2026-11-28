@@ -6,6 +6,11 @@
 build/
 pubspec.lock
 
+# Fichiers générés par Flutter — jamais versionnés
+.flutter-plugins
+.flutter-plugins-dependencies
+android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
+
 # IDE
 .idea/
 .vscode/
