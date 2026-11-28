@@ -20,7 +20,9 @@ library;
 import 'dart:convert';
 
 import 'package:flutter/services.dart';
+import 'package:horloge_celeste_engine/horloge_celeste_engine.dart';
 
+import '../data/models/formatters.dart';
 import 'settings_store.dart';
 
 class WallpaperService {
@@ -92,10 +94,49 @@ class WallpaperService {
         });
       }
 
+      // ── Informations de la page horloge, affichées aussi sur l'écran de
+      // verrouillage (demande v1.0.9) : position, prochain coucher du
+      // soleil RÉEL, date biblique — recalculées ici à chaque écriture.
+      String prochainCoucherTxt = '';
+      try {
+        final maintenant = DateTime.now();
+        final solar = SolarEngine.calculer(
+            maintenant, pos.latitude, pos.longitude);
+        DateTime? coucher = solar.calculable ? solar.coucher : null;
+        if (coucher != null && !coucher.isAfter(maintenant)) {
+          final demain = SolarEngine.calculer(
+              maintenant.add(const Duration(days: 1)),
+              pos.latitude,
+              pos.longitude);
+          coucher = demain.calculable ? demain.coucher : null;
+        }
+        if (coucher != null) prochainCoucherTxt = heureCivilFormat(coucher);
+      } catch (_) {
+        // Repli : la ligne s'affiche sans le coucher.
+      }
+
+      String dateBibliqueTxt = '';
+      try {
+        final adapter = BiblicalCalendarAdapter(
+          latitude: pos.latitude,
+          longitude: pos.longitude,
+        );
+        final jour = adapter.jourBibliqueActuel(DateTime.now());
+        if (jour != null) {
+          dateBibliqueTxt = '${jour.jourDuMois} ${jour.nomMois}'
+              '${jour.estShabbat ? ' · Shabbat' : ''}';
+        }
+      } catch (_) {
+        // Repli : le wallpaper affiche la date civile.
+      }
+
       final snapshot = jsonEncode({
         'lat': pos.latitude,
         'lon': pos.longitude,
         'trotteuseFluide': store.trotteuseFluide(),
+        'positionLibelle': pos.libelle,
+        'prochainCoucherTxt': prochainCoucherTxt,
+        'dateBibliqueTxt': dateBibliqueTxt,
         'alarmes': alarmes,
       });
 

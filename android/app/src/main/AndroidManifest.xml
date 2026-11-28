@@ -12,6 +12,11 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Exemption d'optimisation de batterie : les alarmes d'une horloge-
+         réveil doivent sonner même quand l'app est en veille — sans cette
+         permission, le dialogue d'exemption ne s'affiche pas (cause n°1
+         des alarmes muettes sur Xiaomi/Oppo/Samsung). -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
     <!-- Écran de verrouillage (§9.5) — fond d'écran animé OPTIONNEL :
          required=false pour ne pas exclure les rares appareils sans

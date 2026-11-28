@@ -90,6 +90,19 @@ class NotificationService {
       // Alarmes EXACTES Android 12+ : demandées si nécessaires ; le repli
       // inexact reste fonctionnel (notification dans la fenêtre système).
       await androidImpl?.requestExactAlarmsPermission();
+      // EXEMPTION D'OPTIMISATION DE BATTERIE : les constructeurs (Xiaomi,
+      // Oppo, Samsung…) tuent ou diffèrent les alarmes des apps mises en
+      // veille — c'est LA cause n°1 des alarmes qui ne sonnent pas. La
+      // demande est légitime pour une horloge-réveil ; le dialogue
+      // système ne s'affiche que si l'app n'est pas encore exemptée.
+      try {
+        final batterie = await Permission.ignoreBatteryOptimizations.status;
+        if (!batterie.isGranted) {
+          await Permission.ignoreBatteryOptimizations.request();
+        }
+      } catch (_) {
+        // Appareil sans gestion d'optimisation (rare) : ignorer.
+      }
       // Mémorise la décision système (Permission.scheduleExactAlarm —
       // permission_handler) : zonedSchedule lèverait une exception en mode
       // exact sans permission — ce qui LAISSAIT LES ALARMES MUETTES.
@@ -187,36 +200,45 @@ class NotificationService {
     // la harpe) retentisse même quand l'application est fermée, chaque mode
     // de sonnerie dispose de son propre canal, créé AVEC son son embarqué
     // (res/raw/<nom>.mp3). 'silence' : vibration seule, sans son.
+    // SON SUR LE FLUX ALARM (audioAttributesUsage — défaut corrigé) : par
+    // défaut le plugin joue le son sur le flux NOTIFICATION — si le volume
+    // des notifications est baissé ou muet (typiquement la nuit), le
+    // téléphone ne sonne PAS même si la notification arrive. Avec
+    // USAGE_ALARM, le son suit le volume du RÉVEIL, comme un vrai
+    // réveil-matin — c'était la cause n°2 des « alarmes muettes ».
     const canaux = [
       AndroidNotificationChannel(
-        'alarmes_shofar',
+        'alarmes_shofar_v2',
         'Alarmes — Shofar',
         description: 'Alarmes spirituelles sonnées au shofar',
         importance: Importance.max,
         playSound: true,
         sound: RawResourceAndroidNotificationSound('shofar'),
         enableVibration: true,
+        audioAttributesUsage: AudioAttributesUsage.alarm,
       ),
       AndroidNotificationChannel(
-        'alarmes_cloche',
+        'alarmes_cloche_v2',
         'Alarmes — Cloche',
         description: 'Alarmes spirituelles sonnées à la cloche',
         importance: Importance.max,
         playSound: true,
         sound: RawResourceAndroidNotificationSound('cloche'),
         enableVibration: true,
+        audioAttributesUsage: AudioAttributesUsage.alarm,
       ),
       AndroidNotificationChannel(
-        'alarmes_harpe',
+        'alarmes_harpe_v2',
         'Alarmes — Harpe',
         description: 'Alarmes spirituelles sonnées à la harpe',
         importance: Importance.max,
         playSound: true,
         sound: RawResourceAndroidNotificationSound('harpe'),
         enableVibration: true,
+        audioAttributesUsage: AudioAttributesUsage.alarm,
       ),
       AndroidNotificationChannel(
-        'alarmes_silence',
+        'alarmes_silence_v2',
         'Alarmes — Silence',
         description: 'Alarmes silencieuses (vibration seule)',
         importance: Importance.max,
@@ -226,6 +248,23 @@ class NotificationService {
     ];
     for (final canal in canaux) {
       await androidImpl?.createNotificationChannel(canal);
+    }
+    // Les canaux SANS suffixe _v2 existent déjà sur les téléphones mis à
+    // jour : Android fige un canal à sa création (le nouveau flux ALARM et
+    // les sons n'y seraient JAMAIS appliqués) — ils sont supprimés, les
+    // nouvelles alarmes utilisent les canaux _v2 ci-dessus.
+    for (final ancien in const [
+      'alarmes_celestes',
+      'alarmes_shofar',
+      'alarmes_cloche',
+      'alarmes_harpe',
+      'alarmes_silence',
+    ]) {
+      try {
+        await androidImpl?.deleteNotificationChannel(ancien);
+      } catch (_) {
+        // Canal déjà absent : rien à faire.
+      }
     }
   }
 
@@ -345,7 +384,7 @@ class NotificationService {
   NotificationDetails _details({required bool vibration, required String son}) {
     const modesConnus = ['shofar', 'cloche', 'harpe'];
     final sonActif = modesConnus.contains(son);
-    final canal = sonActif ? 'alarmes_$son' : 'alarmes_silence';
+    final canal = sonActif ? 'alarmes_${son}_v2' : 'alarmes_silence_v2';
     final android = AndroidNotificationDetails(
       canal,
       'Alarmes spirituelles Horloge Céleste',
@@ -356,6 +395,9 @@ class NotificationService {
       playSound: sonActif,
       enableVibration: vibration,
       sound: sonActif ? RawResourceAndroidNotificationSound(son) : null,
+      // Son sur le FLUX ALARM (volume du réveil) — jamais muet parce que
+      // le volume des notifications serait baissé (défaut corrigé).
+      audioAttributesUsage: AudioAttributesUsage.alarm,
       fullScreenIntent: true,
       category: AndroidNotificationCategory.alarm,
     );

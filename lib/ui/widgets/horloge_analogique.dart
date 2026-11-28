@@ -20,8 +20,12 @@
 ///     d'avec l'horloge système : l'aiguille oscillait avant/arrière —
 ///     corrigé ici (l'heure vient de DateTime.now(), jamais d'un cycles
 ///     d'animation indépendant) ;
-///   • l'ARC du cycle biblique écoulé depuis le DERNIER COUCHER RÉEL et le
-///     médaillon « HEURE BIBLIQUE » restent la signature Horloge Céleste.
+///   • l'ARC du cycle biblique écoulé depuis le DERNIER COUCHER RÉEL reste
+///     la signature Horloge Céleste ; le médaillon central affiche
+///     l'heure CIVILE (conforme aux aiguilles et à l'horloge numérique —
+///     l'ancien « heure biblique » continue se lisait comme une fausse
+///     heure) puis la période biblique en cours (veille / heure
+///     saisonnière) ;
 
 import 'dart:async';
 import 'dart:math' as math;
@@ -222,14 +226,6 @@ class _PeintureCadran extends CustomPainter {
     return h * 60.0 + instant.minute + instant.second / 60.0;
   }
 
-  /// Heure biblique affichée au médaillon (1..24) + minutes.
-  String _heureBibliqueTexte(double minutes) {
-    final n = (minutes.floor() ~/ 60) % 24; // 0 → heure 1, 23 → heure 24
-    final h = n + 1;
-    final m = minutes.floor() % 60;
-    return '${h.toString().padLeft(2, '0')} h ${m.toString().padLeft(2, '0')}';
-  }
-
   /// La moitié HAUTE du cadran (18 h → 06 h en passant par 00) est l'espace
   /// NUIT (ciel étoilé + lune sur l'image de fond) ; la moitié BASSE est
   /// l'espace JOUR (ciel bleu + soleil).
@@ -307,22 +303,39 @@ class _PeintureCadran extends CustomPainter {
     // ── CHIFFRES DES 24 HEURES CIVILES (image de référence) ──
     //   • chiffres PAIRS (00, 02 … 22) en GRANDS caractères ;
     //   • chiffres IMPAIRS (01 … 23) en petits caractères entre eux ;
-    //   • 00 en haut, 18 à gauche — une révolution = 24 h.
+    //   • 00 en haut, 18 à gauche — une révolution = 24 h ;
+    //   • 06 h et 18 h : PASTILLE SOMBRE derrière le chiffre — l'effet
+    //     de lumière du fond (lune/soleil du décor) rendait ces deux
+    //     chiffres illisibles (corrigé v1.0.9).
     final tpChiffre = TextPainter(textDirection: TextDirection.ltr);
     for (var h = 0; h < 24; h++) {
       final angle = h * _degresParHeure;
       final pair = h.isEven;
       final coteNuit = _coteNuit(angle);
+      final marqueur = h == 6 || h == 18;
+      if (marqueur) {
+        // Pastille sombre sous le chiffre : contraste garanti sur les
+        // zones lumineuses du décor (coucher 18 h — gauche ; lever 06 h —
+        // droite).
+        final pPastille = _pos(centre, angle, rayon - 26);
+        canvas.drawCircle(
+          pPastille,
+          rayon * 0.10,
+          Paint()..color = const Color(0xB30B1226),
+        );
+      }
       tpChiffre.text = TextSpan(
         text: h.toString().padLeft(2, '0'),
         style: TextStyle(
-          color: coteNuit
-              ? (pair
-                  ? AppColors.orPastel.withValues(alpha: 0.95)
-                  : AppColors.orPastel.withValues(alpha: 0.72))
-              : (pair
-                  ? AppColors.ardoise.withValues(alpha: 0.92)
-                  : AppColors.ardoise.withValues(alpha: 0.62)),
+          color: marqueur
+              ? AppColors.blanc.withValues(alpha: 1.0)
+              : coteNuit
+                  ? (pair
+                      ? AppColors.orPastel.withValues(alpha: 0.95)
+                      : AppColors.orPastel.withValues(alpha: 0.72))
+                  : (pair
+                      ? AppColors.ardoise.withValues(alpha: 0.92)
+                      : AppColors.ardoise.withValues(alpha: 0.62)),
           fontSize: rayon * (pair ? 0.115 : 0.075),
           fontWeight: pair ? FontWeight.w800 : FontWeight.w700,
         ),
@@ -385,7 +398,10 @@ class _PeintureCadran extends CustomPainter {
         ..color = AppColors.orSolaire.withValues(alpha: 0.75),
     );
 
-    // ── Médaillon central : heure biblique + période en cours ──
+    // ── Médaillon central : heure CIVILE (conforme aux aiguilles et à
+    // l'horloge numérique — l'ancien médaillon affichait l'heure biblique
+    // continue, décalée de +6 h par rapport au cadran, ce qui se lisait
+    // comme une fausse heure) + période biblique en cours ──
     final rayonMedaillon = rayon * 0.34;
     canvas.drawCircle(centre, rayonMedaillon,
         Paint()..color = nuit ? AppColors.ardoise : AppColors.bleuCielNuit);
@@ -402,7 +418,7 @@ class _PeintureCadran extends CustomPainter {
       textAlign: TextAlign.center,
     );
     tpPeriode.text = TextSpan(
-      text: 'HEURE BIBLIQUE\n',
+      text: 'HEURE CIVILE\n',
       style: TextStyle(
         color: (nuit ? AppColors.orVif : AppColors.bleuCiel)
             .withValues(alpha: 0.85),
@@ -413,7 +429,8 @@ class _PeintureCadran extends CustomPainter {
       ),
       children: [
         TextSpan(
-          text: _heureBibliqueTexte(minutes),
+          text: '${instant.hour.toString().padLeft(2, '0')} h '
+              '${instant.minute.toString().padLeft(2, '0')}',
           style: TextStyle(
             color: AppColors.orVif,
             fontSize: rayon * 0.105,

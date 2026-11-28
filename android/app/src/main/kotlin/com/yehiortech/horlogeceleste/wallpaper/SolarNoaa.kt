@@ -36,6 +36,33 @@ object SolarNoaa {
         latitude: Double,
         longitude: Double,
         decTzMinutes: Int,
+    ): Double? = solaireMinutes(annee, mois, jour, latitude, longitude, decTzMinutes, lever = false)
+
+    /**
+     * Lever du soleil du jour civil local, en MINUTES APRÈS LE MINUIT
+     * LOCAL de ce jour. Null : jour polaire — même convention.
+     */
+    fun leverMinutes(
+        annee: Int,
+        mois: Int,
+        jour: Int,
+        latitude: Double,
+        longitude: Double,
+        decTzMinutes: Int,
+    ): Double? = solaireMinutes(annee, mois, jour, latitude, longitude, decTzMinutes, lever = true)
+
+    /**
+     * Calcul NOAA partagé : midi solaire ± angle horaire (+ coucher,
+     * − lever). [lever] choisit le signe du demi-arc diurne.
+     */
+    private fun solaireMinutes(
+        annee: Int,
+        mois: Int,
+        jour: Int,
+        latitude: Double,
+        longitude: Double,
+        decTzMinutes: Int,
+        lever: Boolean,
     ): Double? {
         val julianDay = jourJulien(annee, mois, jour)
         val t = (julianDay - 2451545.0) / 36525.0
@@ -54,11 +81,13 @@ object SolarNoaa {
         val cosH = cos(rad(ZENITH_DEG)) / (cos(latRad) * cos(decRad)) -
                 tan(latRad) * tan(decRad)
 
-        // |cosH| > 1 → polaire : pas de coucher calculable ce jour.
+        // |cosH| > 1 → polaire : pas de lever/coucher calculable ce jour.
         if (cosH < -1.0 || cosH > 1.0) return null
 
         val angleHoraireDeg = deg(acos(cosH.coerceIn(-1.0, 1.0)))
-        return midiSolaireMinutes + 4.0 * angleHoraireDeg
+        val demiArc = 4.0 * angleHoraireDeg
+        return if (lever) midiSolaireMinutes - demiArc
+        else midiSolaireMinutes + demiArc
     }
 
     // ── Mathématiques solaires (NOAA — identiques au moteur Dart) ─────

@@ -22,6 +22,7 @@ import 'package:horloge_celeste_engine/horloge_celeste_engine.dart';
 
 import '../core/app/cycle_app.dart';
 import '../services/settings_store.dart';
+import '../services/wallpaper_service.dart';
 import 'settings_controller.dart';
 
 class HorlogeState {
@@ -165,6 +166,13 @@ class HorlogeController extends Notifier<HorlogeState> {
 
     // État persisté toutes les 30 s (§13).
     if (maintenant.second % 30 == 0) _persisterEtat();
+
+    // Instantané du wallpaper rafraîchi chaque minute : la date biblique et
+    // le prochain coucher de l'écran de verrouillage restent exacts même
+    // quand l'app est ouverte depuis des heures (§9.5).
+    if (maintenant.second == 0) {
+      unawaited(WallpaperService.actualiserSnapshot());
+    }
   }
 
   /// Reprise de l'app — recalcul COMPLET depuis l'heure réelle (§13).
