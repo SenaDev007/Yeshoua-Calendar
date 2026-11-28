@@ -555,15 +555,16 @@ class _AlarmesScreenState extends ConsumerState<AlarmesScreen> {
               Container(
                 width: 38,
                 height: 38,
+                alignment: Alignment.center,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: couleur.withValues(alpha: 0.12),
                   border: Border.all(color: couleur.withValues(alpha: 0.5)),
                 ),
-                const Align(
-                  child:
-                      Icon(Icons.add_alarm_outlined, color: couleur, size: 20),
-                ),
+                child: const Icon(
+                    Icons.add_alarm_outlined,
+                    color: AppColors.bleuCielFonce,
+                    size: 20),
               ),
               const SizedBox(width: 12),
               Expanded(

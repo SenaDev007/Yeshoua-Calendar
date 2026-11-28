@@ -192,13 +192,13 @@ class _PeintureCadran extends CustomPainter {
     } else {
       // Repli : moitié nuit (haut) / moitié jour (bas).
       final pinceauNuit = Paint()
-        ..shader = ui.Gradient.createRadial(
+        ..shader = ui.Gradient.radial(
           Offset(centre.dx - rayon * 0.9, centre.dy),
           rayon * 1.6,
           [const Color(0xFF31407E), const Color(0xFF10163A)],
         );
       final pinceauJour = Paint()
-        ..shader = ui.Gradient.createRadial(
+        ..shader = ui.Gradient.radial(
           Offset(centre.dx + rayon * 0.9, centre.dy),
           rayon * 1.6,
           [const Color(0xFF96C7F0), const Color(0xFF78B4E2)],
