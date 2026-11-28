@@ -138,8 +138,9 @@ void main() {
     expect(find.textContaining('· mois 1'), findsWidgets);
   });
 
-  testWidgets('L\u2019écran Alarmes affiche les trois RHEMA réglables',
-      (tester) async {
+  testWidgets(
+      'L\u2019écran Alarmes affiche les deux RHEMA réglables'
+      ' (+ alarmes personnalisées)', (tester) async {
     await pomperApplication(tester);
 
     // Navigation vers l'onglet Alarmes (dernière destination de la barre).
@@ -147,10 +148,11 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     await tester.pump(const Duration(milliseconds: 300));
 
-    // Les trois alarmes spirituelles sont visibles et réglables.
+    // Les deux alarmes spirituelles sont visibles et réglables — la carte
+    // « Préparation du soir » a été SUPPRIMÉE (demande utilisateur).
     expect(find.text('RHEMA du matin'), findsWidgets);
-    expect(find.text('Préparation du soir'), findsWidgets);
-    // La liste est paresseuse : on fait défiler jusqu'à la troisième carte.
+    expect(find.text('Préparation du soir'), findsNothing);
+    // La liste est paresseuse : on fait défiler jusqu'à la deuxième carte.
     await tester.drag(find.text('RHEMA du matin'), const Offset(0, -600));
     await tester.pump(const Duration(milliseconds: 300));
     await tester.pump(const Duration(milliseconds: 300));

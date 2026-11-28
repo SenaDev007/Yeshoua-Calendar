@@ -97,12 +97,11 @@ class HorlogeScreen extends ConsumerWidget {
                   children: [
                     Center(
                       child: HorlogeAnalogique(
-                        maintenant: etat.maintenant,
                         labelPeriode: labelPeriode,
                         sousLabelPeriode: sousLabel,
                         nuit: enNuit,
                         dernierCoucher: dernierCoucher,
-                        prochainCoucher: etat.prochainCoucher,
+                        trotteuseFluide: settings.trotteuseFluide,
                       ),
                     ),
                     const SizedBox(height: 14),

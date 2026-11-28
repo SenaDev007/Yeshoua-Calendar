@@ -1,52 +1,62 @@
-/// ⭐ HORLOGE ANALOGIQUE BIBLIQUE 24 h (§6.2 — version biblique) — CustomPainter.
+/// ⭐ HORLOGE ANALOGIQUE 24 h — CONFORME À L'IMAGE DE RÉFÉRENCE
+/// (capture fournie par l'utilisateur) sur le fond de design Horloge
+/// Céleste (ciel de nuit étoilé + lune / ciel de jour nuageux + soleil).
 ///
-/// PRINCIPE (demande expresse de l'utilisateur) :
-///   • cadran de 24 HEURES BIBLIQUES (1 à 24) — jamais une horloge civile 12 h ;
-///   • ORIGINE DU CYCLE : le COUCHER DU SOLEIL RÉEL (heure biblique 01:00,
-///     positionnée À GAUCHE du cadran) ;
-///   • DURÉE DU CYCLE : 24 h — 15° par heure biblique ;
-///   • position des aiguilles calculée à partir du TEMPS ÉCOULÉ depuis le
-///     dernier coucher du soleil (algorithmes astronomiques de position) ;
-///   • fin du cycle au coucher du soleil suivant : le compteur revient à 01:00 ;
-///   • MOITIÉ HAUTE (18 h → 6 h civils = heures 1→12) : image de nuit ;
-///     MOITIÉ BASSE (6 h → 18 h civils = heures 13→24) : image de jour —
-///     les deux moitiés forment un cercle parfait, aiguilles bien visibles.
-///
-/// Correspondances (coucher réel à 18 h 00 par exemple) :
-///   18 h civils = 01:00 biblique (à gauche) · minuit = 07:00 ·
-///   lever du soleil = 13:00 (à droite) · midi = 19:00 (en bas).
-library;
+/// PRINCIPES (demandes explicites de l'utilisateur, v1.0.7) :
+///   • cadran CIVIL 24 h : 00 en HAUT, 06 à DROITE, 12 en BAS, 18 à
+///     GAUCHE — exactement comme l'image de référence ;
+///   • chiffres PAIRS en GRANDS caractères (00, 02 … 22), chiffres IMPAIRS
+///     en petits caractères entre eux (01 … 23) ;
+///   • MINUTEUR INTERNE : petits nombres 05, 10 … 55, 60 sur un anneau
+///     intérieur (60 sous le 00) ;
+///   • AIGUILLES À L'HEURE CIVILE RÉELLE : l'aiguille des heures fait UN
+///     TOUR PAR 24 h — 13 h pointe entre les chiffres 13 et 14, l'heure
+///     analogique est CONFORME à l'heure numérique (défaut corrigé :
+///     l'ancien cadran « biblique » décalait les aiguilles) ;
+///   • aiguille des SECONDES ROUGE avec contrepoids — deux modes au choix
+///     dans les Paramètres : balayage FLUIDE (~60 img/s, synchronisé sur
+///     les millisecondes RÉELLES) ou TIC-TAC par seconde (économie) ;
+///     L'ANCIENNE VERSION désynchronisait un contrôleur d'animation 1 s
+///     d'avec l'horloge système : l'aiguille oscillait avant/arrière —
+///     corrigé ici (l'heure vient de DateTime.now(), jamais d'un cycles
+///     d'animation indépendant) ;
+///   • l'ARC du cycle biblique écoulé depuis le DERNIER COUCHER RÉEL et le
+///     médaillon « HEURE BIBLIQUE » restent la signature Horloge Céleste.
 
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/theme/app_colors.dart';
 
+/// Rouge de la trotteuse — même teinte que l'image de référence.
+const Color _rougeTrotteuse = Color(0xFFE53935);
+
 class HorlogeAnalogique extends StatefulWidget {
   const HorlogeAnalogique({
     super.key,
-    required this.maintenant,
     required this.labelPeriode,
     required this.sousLabelPeriode,
     required this.nuit,
     required this.dernierCoucher,
-    required this.prochainCoucher,
+    required this.trotteuseFluide,
   });
 
-  final DateTime maintenant;
   final String labelPeriode;
   final String sousLabelPeriode;
   final bool nuit;
 
   /// Coucher du soleil RÉEL déclenchant le cycle biblique en cours
-  /// (origine des heures — heure biblique 01:00). Null : repli sur 18 h.
+  /// (origine de l'arc écoulé et de l'heure biblique du médaillon).
   final DateTime? dernierCoucher;
 
-  /// Prochain coucher du soleil RÉEL (fin du cycle — retour à 01:00).
-  final DateTime? prochainCoucher;
+  /// Trotteuse FLUIDE (balayage continu) sinon tic-tac par seconde —
+  /// même réglage que l'écran de verrouillage (Paramètres §9.5).
+  final bool trotteuseFluide;
 
   @override
   State<HorlogeAnalogique> createState() => _HorlogeAnalogiqueState();
@@ -54,22 +64,74 @@ class HorlogeAnalogique extends StatefulWidget {
 
 class _HorlogeAnalogiqueState extends State<HorlogeAnalogique>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _controleur;
+  /// Instant RÉEL affiché — mis à jour par le ticker (fluide) ou par un
+  /// minutier aligné sur la seconde (tic-tac). JAMAIS depuis un contrôleur
+  /// d'animation désynchronisé (cause de l'aiguille qui oscillait).
+  final ValueNotifier<DateTime> _instant =
+      ValueNotifier<DateTime>(DateTime.now());
+
+  Ticker? _ticker;
+  Timer? _minutier;
   ui.Image? _fondCadran;
+  bool _fluide = true;
 
   @override
   void initState() {
     super.initState();
-    // Balayage fluide de la trotteuse (§6.2) : un tour de fraction par seconde.
-    _controleur = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 1),
-    )..repeat();
+    _fluide = widget.trotteuseFluide;
+    _demarrer();
     _chargerFond();
   }
 
-  /// Charge l'image de fond du cadran (moitié nuit / moitié jour formant
-  /// un cercle parfait) — conçue professionnellement, sans texte.
+  @override
+  void didUpdateWidget(HorlogeAnalogique ancien) {
+    super.didUpdateWidget(ancien);
+    // Le réglage « Trotteuse fluide » a changé : bascule du mode sans
+    // rouvrir l'application.
+    if (ancien.trotteuseFluide != widget.trotteuseFluide) {
+      _fluide = widget.trotteuseFluide;
+      _demarrer();
+    }
+  }
+
+  /// Démarre la source de temps adaptée au mode choisi.
+  void _demarrer() {
+    _stopper();
+    if (_fluide) {
+      // BALAYAGE FLUIDE : une image par rafraîchissement d'écran, l'heure
+      // est lue à chaque image — la trotteuse avance avec les
+      // millisecondes réelles, sans jamais reculer.
+      _ticker = createTicker((_) {
+        _instant.value = DateTime.now();
+      })
+        ..start();
+    } else {
+      // TIC-TAC : un repaint par seconde, ALIGNÉ sur le changement de
+      // seconde (économie de batterie maximale).
+      final delai = Duration(
+          milliseconds: 1000 - DateTime.now().millisecond);
+      Future.delayed(delai, () {
+        // Garde : le mode a pu basculer (ou l'écran disparaître) pendant
+        // l'attente — on ne crée le minutier que si le tic-tac est voulu.
+        if (!mounted || !_fluide) return;
+        _instant.value = DateTime.now();
+        _minutier = Timer.periodic(const Duration(seconds: 1), (_) {
+          if (!mounted) return;
+          _instant.value = DateTime.now();
+        });
+      });
+    }
+  }
+
+  void _stopper() {
+    _ticker?.dispose();
+    _ticker = null;
+    _minutier?.cancel();
+    _minutier = null;
+  }
+
+  /// Charge l'image de fond du cadran (nuit étoilée + lune / jour + soleil)
+  /// — conçue professionnellement, sans texte.
   Future<void> _chargerFond() async {
     try {
       final data =
@@ -87,24 +149,24 @@ class _HorlogeAnalogiqueState extends State<HorlogeAnalogique>
 
   @override
   void dispose() {
-    _controleur.dispose();
+    _stopper();
+    _instant.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controleur,
-      builder: (context, _) => CustomPaint(
+    return ValueListenableBuilder<DateTime>(
+      valueListenable: _instant,
+      builder: (context, instant, _) => CustomPaint(
         size: const Size.square(300),
         painter: _PeintureCadran(
-          maintenant: widget.maintenant,
-          fractionSeconde: _controleur.value,
+          instant: instant,
           labelPeriode: widget.labelPeriode,
           sousLabelPeriode: widget.sousLabelPeriode,
           nuit: widget.nuit,
           dernierCoucher: widget.dernierCoucher,
-          prochainCoucher: widget.prochainCoucher,
+          trotteuseFluide: _fluide,
           fondCadran: _fondCadran,
         ),
       ),
@@ -114,30 +176,32 @@ class _HorlogeAnalogiqueState extends State<HorlogeAnalogique>
 
 class _PeintureCadran extends CustomPainter {
   _PeintureCadran({
-    required this.maintenant,
-    required this.fractionSeconde,
+    required this.instant,
     required this.labelPeriode,
     required this.sousLabelPeriode,
     required this.nuit,
     required this.dernierCoucher,
-    required this.prochainCoucher,
+    required this.trotteuseFluide,
     required this.fondCadran,
   });
 
-  final DateTime maintenant;
-  final double fractionSeconde;
+  /// Instant RÉEL (DateTime.now() au moment du tracé).
+  final DateTime instant;
   final String labelPeriode;
   final String sousLabelPeriode;
   final bool nuit;
   final DateTime? dernierCoucher;
-  final DateTime? prochainCoucher;
+
+  /// Balayage continu (millisecondes réelles) sinon tic-tac par seconde.
+  final bool trotteuseFluide;
   final ui.Image? fondCadran;
 
-  // ── Géométrie du cadran biblique ──────────────────────────────────────
-  // Les angles sont mesurés en DEGRÉS depuis le HAUT, sens horaire.
-  // Heure biblique 1 (coucher du soleil) = 270° = GAUCHE du cadran.
-  static const double _angleOrigine = 270.0;
-  static const double _degresParHeure = 15.0;
+  // ── Géométrie du cadran civil 24 h ────────────────────────────────────
+  // Angles mesurés en DEGRÉS depuis le HAUT, sens horaire :
+  //   00 h = 0° (haut) · 06 h = 90° (droite) · 12 h = 180° (bas) ·
+  //   18 h = 270° (GAUCHE) — exactement l'image de référence.
+  static const double _degresParHeure = 15.0; // 360 / 24
+  static const double _degresParMinute = 6.0; // 360 / 60
 
   /// Position d'un point du cadran pour un angle (° depuis le haut, horaire).
   Offset _pos(Offset centre, double degres, double rayon) {
@@ -145,31 +209,31 @@ class _PeintureCadran extends CustomPainter {
     return centre + Offset(math.sin(a) * rayon, -math.cos(a) * rayon);
   }
 
-  /// Angle (°) du CHIFFRE de l'heure biblique [h] (1..24).
-  double _angleChiffre(int h) =>
-      (_angleOrigine + (h - 1) * _degresParHeure) % 360.0;
-
-  /// Minutes écoulées DEPUIS LE DERNIER COUCHER DU SOLEIL RÉEL (0→1440).
-  /// Origine du cycle = coucher du soleil (§6.2 biblique) ; repli sur
-  /// 18 h 00 si le calcul solaire est indisponible (région polaire).
+  /// Minutes écoulées DEPUIS LE DERNIER COUCHER DU SOLEIL RÉEL (0→1440) —
+  /// arc du cycle biblique + heure biblique du médaillon. Repli sur 18 h
+  /// si le calcul solaire est indisponible (région polaire).
   double _minutesDepuisCoucher() {
     if (dernierCoucher != null) {
-      final e = maintenant.difference(dernierCoucher!).inSeconds / 60.0;
+      final e = instant.difference(dernierCoucher!).inSeconds / 60.0;
       if (e >= 0) return e % 1440.0;
-      // Coucher légèrement dans le futur (horloge système) : cycle à zéro.
       return 0.0;
     }
-    final h = (maintenant.hour - 18) % 24;
-    return h * 60.0 + maintenant.minute + maintenant.second / 60.0;
+    final h = (instant.hour - 18) % 24;
+    return h * 60.0 + instant.minute + instant.second / 60.0;
   }
 
-  /// Heure biblique affichée (1..24) + minutes, pour le médaillon.
+  /// Heure biblique affichée au médaillon (1..24) + minutes.
   String _heureBibliqueTexte(double minutes) {
     final n = (minutes.floor() ~/ 60) % 24; // 0 → heure 1, 23 → heure 24
     final h = n + 1;
     final m = minutes.floor() % 60;
     return '${h.toString().padLeft(2, '0')} h ${m.toString().padLeft(2, '0')}';
   }
+
+  /// La moitié HAUTE du cadran (18 h → 06 h en passant par 00) est l'espace
+  /// NUIT (ciel étoilé + lune sur l'image de fond) ; la moitié BASSE est
+  /// l'espace JOUR (ciel bleu + soleil).
+  bool _coteNuit(double angle) => angle >= 262.5 || angle < 97.5;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -225,7 +289,7 @@ class _PeintureCadran extends CustomPainter {
         ..color = AppColors.orSolaire.withValues(alpha: 0.55),
     );
 
-    // ── Graduations : 24 heures majeures + quart d'heure mineures ──
+    // ── Graduations : 24 heures majeures + quarts d'heure mineures ──
     final pinceauGrad = Paint()..strokeCap = StrokeCap.round;
     for (var i = 0; i < 96; i++) {
       final angle = i * 3.75; // 96 quarts × 3,75° = 360°
@@ -240,23 +304,31 @@ class _PeintureCadran extends CustomPainter {
           _pos(centre, angle, r1), _pos(centre, angle, r2), pinceauGrad);
     }
 
-    // ── Chiffres des 24 heures bibliques ──
+    // ── CHIFFRES DES 24 HEURES CIVILES (image de référence) ──
+    //   • chiffres PAIRS (00, 02 … 22) en GRANDS caractères ;
+    //   • chiffres IMPAIRS (01 … 23) en petits caractères entre eux ;
+    //   • 00 en haut, 18 à gauche — une révolution = 24 h.
     final tpChiffre = TextPainter(textDirection: TextDirection.ltr);
-    for (var h = 1; h <= 24; h++) {
-      final angle = _angleChiffre(h);
-      final demiNuit = angle >= 262.5 || angle < 97.5; // moitié haute = nuit
+    for (var h = 0; h < 24; h++) {
+      final angle = h * _degresParHeure;
+      final pair = h.isEven;
+      final coteNuit = _coteNuit(angle);
       tpChiffre.text = TextSpan(
-        text: '$h',
+        text: h.toString().padLeft(2, '0'),
         style: TextStyle(
-          color: demiNuit
-              ? AppColors.orPastel.withValues(alpha: 0.95)
-              : AppColors.ardoise.withValues(alpha: 0.9),
-          fontSize: rayon * 0.093,
-          fontWeight: FontWeight.w800,
+          color: coteNuit
+              ? (pair
+                  ? AppColors.orPastel.withValues(alpha: 0.95)
+                  : AppColors.orPastel.withValues(alpha: 0.72))
+              : (pair
+                  ? AppColors.ardoise.withValues(alpha: 0.92)
+                  : AppColors.ardoise.withValues(alpha: 0.62)),
+          fontSize: rayon * (pair ? 0.115 : 0.075),
+          fontWeight: pair ? FontWeight.w800 : FontWeight.w700,
         ),
       );
       tpChiffre.layout();
-      final r = rayon - 40;
+      final r = rayon - 26;
       tpChiffre.paint(
         canvas,
         _pos(centre, angle, r) -
@@ -264,21 +336,46 @@ class _PeintureCadran extends CustomPainter {
       );
     }
 
-    // ── Marqueurs solaires : coucher (heure 1, gauche) et lever (heure 13,
-    //    droite) — petits soleils dorés sur le pourtour ──
-    for (final a in [_angleChiffre(1), _angleChiffre(13)]) {
+    // ── MINUTEUR INTERNE : 05, 10 … 55, 60 (60 sous le 00, comme la
+    //    référence) — chaque minute = 6° depuis le haut, sens horaire.
+    final tpMinute = TextPainter(textDirection: TextDirection.ltr);
+    for (var m = 0; m < 60; m += 5) {
+      final libelle = m == 0 ? '60' : m.toString().padLeft(2, '0');
+      final angle = m * _degresParMinute;
+      final coteNuit = _coteNuit(angle);
+      tpMinute.text = TextSpan(
+        text: libelle,
+        style: TextStyle(
+          color: (coteNuit ? AppColors.orPastel : AppColors.grisSecondaire)
+              .withValues(alpha: 0.85),
+          fontSize: rayon * 0.05,
+          fontWeight: FontWeight.w700,
+        ),
+      );
+      tpMinute.layout();
+      final r = rayon * 0.70;
+      tpMinute.paint(
+        canvas,
+        _pos(centre, angle, r) -
+            Offset(tpMinute.width / 2, tpMinute.height / 2),
+      );
+    }
+
+    // ── Marqueurs solaires : 18 h (coucher — gauche) et 06 h (lever —
+    //    droite), petits soleils dorés sur le pourtour ──
+    for (final a in const [270.0, 90.0]) {
       final p = _pos(centre, a, rayon - 5.5);
       canvas.drawCircle(p, 5, Paint()..color = AppColors.orSolaire);
       canvas.drawCircle(
           p, 2.2, Paint()..color = AppColors.blanc.withValues(alpha: 0.9));
     }
 
-    // ── Arc du cycle écoulé : du coucher (270°) à l'heure courante ──
+    // ── Arc du cycle biblique écoulé : du coucher (270° = 18 h) à l'heure
+    //    courante — la nuit balaie la moitié haute, le jour la moitié basse.
     final minutes = _minutesDepuisCoucher();
-    final angleCourant = _angleOrigine + minutes / 1440.0 * 360.0;
     canvas.drawArc(
       Rect.fromCircle(center: centre, radius: rayon - 5),
-      (_angleOrigine - 90) * math.pi / 180.0,
+      (270.0 - 90) * math.pi / 180.0,
       (minutes / 1440.0) * 2 * math.pi,
       false,
       Paint()
@@ -352,26 +449,30 @@ class _PeintureCadran extends CustomPainter {
       centre - Offset(tpPeriode.width / 2, tpPeriode.height / 2),
     );
 
-    // ── Aiguilles — angles calculés depuis le DERNIER COUCHER RÉEL ──
-    final indiceHeure = (minutes.floor() ~/ 60) % 24; // 0 → heure 1
-    final angleBaseHeure = _angleOrigine + indiceHeure * _degresParHeure;
-    final fractionHeure = (minutes % 60.0) / 60.0;
+    // ── AIGUILLES À L'HEURE CIVILE RÉELLE (conformes à l'heure numérique) ──
+    // Heures : UN TOUR PAR 24 h — 13 h 00 → 195° (entre 13 et 14, en bas à
+    // gauche) ; minutes et secondes : 6° par unité.
+    final fractionSeconde = instant.millisecond / 1000.0;
+    final angleHeures = (instant.hour % 24 +
+            instant.minute / 60.0 +
+            instant.second / 3600.0) *
+        _degresParHeure;
+    final angleMinutes = (instant.minute + instant.second / 60.0) *
+        _degresParMinute;
+    // Trotteuse : FLUIDE = balayage continu sur les millisecondes réelles ;
+    // TIC-TAC = saut net à chaque seconde (pas de fraction).
+    final angleSecondes = (instant.second +
+            (trotteuseFluide ? fractionSeconde : 0.0)) *
+        _degresParMinute;
 
-    // Aiguille des heures : un tour complet = 24 h (1440 min).
-    final angleHeures = _angleOrigine + (minutes / 1440.0) * 360.0;
-    // Aiguille des minutes : ancrée au chiffre de l'heure en cours.
-    final angleMinutes = angleBaseHeure + fractionHeure * 360.0;
-    // Trotteuse : balayage fluide (fraction de seconde du contrôleur).
-    final angleSecondes = angleBaseHeure +
-        (((minutes.floor() % 60) + fractionSeconde) / 60.0) * 360.0;
-
-    _aiguille(canvas, centre, angleHeures, rayon * 0.46, 7.0,
-        nuit ? AppColors.orPastel : AppColors.ardoise);
-    _aiguille(canvas, centre, angleMinutes, rayon * 0.64, 4.5,
-        nuit ? AppColors.orPastel : AppColors.ardoise);
+    final couleurAiguilles = nuit ? AppColors.orPastel : AppColors.ardoise;
+    _aiguille(canvas, centre, angleHeures, rayon * 0.55, 7.0, couleurAiguilles);
     _aiguille(
-        canvas, centre, angleSecondes, rayon * 0.74, 2.0, AppColors.orSolaire);
-    _contrepoids(canvas, centre, angleSecondes, 18, 2.0, AppColors.orSolaire);
+        canvas, centre, angleMinutes, rayon * 0.76, 4.5, couleurAiguilles);
+    _aiguille(canvas, centre, angleSecondes, rayon * 0.85, 2.0,
+        _rougeTrotteuse);
+    _contrepoids(canvas, centre, angleSecondes, rayon * 0.16, 2.0,
+        _rougeTrotteuse);
 
     // Moyeu central doré.
     canvas.drawCircle(centre, 6.5, Paint()..color = AppColors.orSolaire);
@@ -416,9 +517,11 @@ class _PeintureCadran extends CustomPainter {
 
   @override
   bool shouldRepaint(_PeintureCadran ancien) =>
-      ancien.maintenant != maintenant ||
-      ancien.fractionSeconde != fractionSeconde ||
+      ancien.instant != instant ||
+      ancien.labelPeriode != labelPeriode ||
+      ancien.sousLabelPeriode != sousLabelPeriode ||
+      ancien.nuit != nuit ||
+      ancien.trotteuseFluide != trotteuseFluide ||
       ancien.dernierCoucher != dernierCoucher ||
-      ancien.prochainCoucher != prochainCoucher ||
       ancien.fondCadran != fondCadran;
 }

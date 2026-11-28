@@ -1,7 +1,7 @@
-/// ⭐ ÉCRAN ALARMES (§8, §8.5) — les trois alarmes spirituelles :
-/// RHEMA du matin (heure réglable), Préparation du soir (coucher − n min)
-/// et RHEMA du soir (au coucher du soleil réel), PLUS les alarmes
-/// personnalisées à heure et tâche libres.
+/// ⭐ ÉCRAN ALARMES (§8, §8.5) — les alarmes spirituelles :
+/// RHEMA du matin (heure réglable) et RHEMA du soir (au coucher du soleil
+/// réel), PLUS les alarmes personnalisées à heure et tâche libres.
+/// (La carte « Préparation du soir » a été retirée — demande utilisateur.)
 ///
 /// Corrections apportées (demande utilisateur) :
 ///   • interrupteurs NETTEMENT visibles (piste et pouce colorés, même à
@@ -76,8 +76,8 @@ class _AlarmesScreenState extends ConsumerState<AlarmesScreen> {
               ),
               const SizedBox(height: 6),
               Text(
-                'Trois rendez-vous avec l\u2019Éternel dans la journée biblique '
-                '+ vos alarmes personnalisées. Les alarmes du soir suivent le '
+                'Deux rendez-vous avec l\u2019Éternel dans la journée biblique '
+                '+ vos alarmes personnalisées. Le RHEMA du soir suit le '
                 'coucher du soleil RÉEL de votre position — jamais une heure '
                 'fixe. Elles fonctionnent même quand l\u2019application est '
                 'fermée, et vibrent même téléphone en silencieux.',
@@ -437,13 +437,10 @@ class _AlarmesScreenState extends ConsumerState<AlarmesScreen> {
           ),
           const SizedBox(height: 10),
           // ── Horaire réglable (§8.4) : le RHEMA du matin sonne à l'heure
-          //    choisie ; la Préparation du soir se règle en minutes avant
-          //    le coucher ; le RHEMA du soir reste ancré au coucher réel
+          //    choisie ; le RHEMA du soir reste ancré au coucher réel
           //    (norme biblique — jamais une heure civile figée).
           if (alarme.type == TypeAlarme.rhemaMatin)
             _ligneHeure(context, ref, alarme, couleur),
-          if (alarme.type == TypeAlarme.preparationSoir)
-            _ligneDecalage(context, ref, alarme, couleur),
           if (alarme.type == TypeAlarme.rhemaSoir)
             const Padding(
               padding: EdgeInsets.only(bottom: 2),
@@ -819,14 +816,37 @@ class _AlarmesScreenState extends ConsumerState<AlarmesScreen> {
                 foregroundColor: AppColors.blanc,
               ),
               onPressed: () async {
+                // Capturé AVANT le pop : utiliser le contexte du dialogue
+                // après sa fermeture lèverait « deactivated widget ».
+                final messager = ScaffoldMessenger.of(context);
                 Navigator.of(context).pop();
-                await ref.read(alarmsProvider.notifier).ajouterPersonnalisee(
-                      libelle: champLibelle.text.trim(),
-                      heure: heure.hour,
-                      minute: heure.minute,
-                      son: son,
-                      vibration: vibration,
-                    );
+                try {
+                  await ref
+                      .read(alarmsProvider.notifier)
+                      .ajouterPersonnalisee(
+                        libelle: champLibelle.text.trim(),
+                        heure: heure.hour,
+                        minute: heure.minute,
+                        son: son,
+                        vibration: vibration,
+                      );
+                  messager.showSnackBar(
+                    SnackBar(
+                        content: Text(
+                            'Alarme créée — elle sonnera chaque jour à '
+                            '${_2(heure.hour)} h ${_2(heure.minute)}. Shalom !')),
+                  );
+                } catch (_) {
+                  // L'échec est VISIBLE : plus d'alarme « perdue » qu'il
+                  // fallait rouvrir l'application pour retrouver.
+                  messager.showSnackBar(
+                    const SnackBar(
+                        content: Text(
+                            'L\u2019alarme a été enregistrée, mais la '
+                            'planification a échoué — elle sera reprise au '
+                            'prochain démarrage.')),
+                  );
+                }
                 await ApercuiSonore.instance.stopper();
               },
               child: const Text('Créer l\u2019alarme'),
@@ -881,60 +901,8 @@ class _AlarmesScreenState extends ConsumerState<AlarmesScreen> {
         ],
       );
 
-  /// Ligne « Avant le coucher » de la Préparation du soir — choix du
-  /// décalage en minutes, reprogrammation immédiate (§8.4).
-  Widget _ligneDecalage(BuildContext context, WidgetRef ref,
-          AlarmeAffichee alarme, Color couleur) =>
-      Row(
-        children: [
-          Icon(Icons.hourglass_bottom, size: 16, color: couleur),
-          const SizedBox(width: 7),
-          // Flexible : la ligne ne déborde jamais sur les petits écrans.
-          const Flexible(
-            child: Text('Avant le coucher du soleil',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style:
-                    TextStyle(color: AppColors.grisSecondaire, fontSize: 12)),
-          ),
-          const Spacer(),
-          PopupMenuButton<int>(
-            tooltip: 'Minutes avant le coucher du soleil',
-            onSelected: (m) => ref
-                .read(alarmsProvider.notifier)
-                .changerMinutesAvant(alarme, m),
-            itemBuilder: (_) => const [
-              PopupMenuItem(value: 1, child: Text('1 minute')),
-              PopupMenuItem(value: 3, child: Text('3 minutes')),
-              PopupMenuItem(value: 5, child: Text('5 minutes')),
-              PopupMenuItem(value: 10, child: Text('10 minutes')),
-              PopupMenuItem(value: 15, child: Text('15 minutes')),
-              PopupMenuItem(value: 20, child: Text('20 minutes')),
-              PopupMenuItem(value: 30, child: Text('30 minutes')),
-            ],
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: couleur.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(9),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text('${alarme.prefs.minutesAvant} min',
-                      style: const TextStyle(
-                        color: AppColors.ardoise,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 13,
-                      )),
-                  const SizedBox(width: 4),
-                  Icon(Icons.expand_more, size: 15, color: couleur),
-                ],
-              ),
-            ),
-          ),
-        ],
-      );
+  // (La ligne « Avant le coucher » de l'ancienne Préparation du soir a été
+  // retirée avec la carte — demande utilisateur v1.0.7.)
 
   String _formatInstant(String iso) {
     final d = DateTime.tryParse(iso);

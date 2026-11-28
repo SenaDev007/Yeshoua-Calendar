@@ -6,7 +6,7 @@ description: >-
   la nuit, douze heures saisonnières, alarmes spirituelles RHEMA.
   Calculs astronomiques 100 % embarqués — fonctionne hors connexion.
 publish_to: 'none'
-version: 1.0.6+7
+version: 1.0.7+8
 
 environment:
   sdk: '>=3.5.0 <4.0.0'

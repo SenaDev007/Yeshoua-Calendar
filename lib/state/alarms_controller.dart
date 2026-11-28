@@ -1,12 +1,19 @@
 /// ⭐ ALARMS CONTROLLER — état des alarmes spirituelles (§8, §8.5).
 ///
-/// Expose : les 3 RHEMA et leurs préférences, les ALARMES PERSONNALISÉES
+/// Expose : les RHEMA du matin et du soir, les ALARMES PERSONNALISÉES
 /// (heure et tâche libres — §8.5), les prochains instants planifiés
 /// (calculés par AlarmPlanner), l'historique des notifications.
 ///
-/// RÉACTIVITÉ (§8.4) : chaque mutation (bascule, heure, son, message,
-/// création, suppression) reconstruit IMMÉDIATEMENT l'état — l'interface
-/// réagit sans quitter ni rouvrir l'application (défaut corrigé).
+/// « PRÉPARATION DU SOIR » SUPPRIMÉE (demande utilisateur v1.0.7) : la
+/// carte ne s'affiche plus et n'est plus programmée — il reste le RHEMA du
+/// matin, le RHEMA du soir et les alarmes personnalisées.
+///
+/// RÉACTIVITÉ (§8.4 — défaut « il faut rouvrir l'app » corrigé) : chaque
+/// mutation (bascule, heure, son, message, création, suppression) affecte
+/// l'état DIRECTEMENT (state = …) IMMÉDIATEMENT après la sauvegarde —
+/// même si la replanification native échoue (l'ancienne version appelait
+/// ref.invalidateSelf() APRÈS l'attente des appels natifs : une exception
+/// silencieuse laissait l'interface figée jusqu'au redémarrage).
 library;
 
 import 'dart:async';
@@ -81,20 +88,33 @@ class AlarmsState {
 class AlarmsController extends Notifier<AlarmsState> {
   @override
   AlarmsState build() {
-    final store = SettingsStore.instance;
     // RECONSTRUCTION CIBLÉE : uniquement au changement de JOUR biblique
     // (coucher réel — le bon moment pour replanifier les couchers suivants)
-    // ou de POSITION. Plus de reconstruction à chaque seconde : les appels
-    // natifs de planification ne sont plus déclenchés en rafale.
-    final (position, _) = ref.watch(horlogeProvider
-        .select((etat) => (etat.position, etat.jourBiblique?.jourDeAnnee)));
-    final adapter = BiblicalCalendarAdapter(
+    // ou de POSITION.
+    ref.watch(horlogeProvider
+        .select((etat) => (etat.position.libelle, etat.jourBiblique?.jourDeAnnee)));
+
+    // REPROGRAMMATION NATIVE en arrière-plan (démarrage / changement de
+    // jour / position) — ne bloque JAMAIS la construction de l'interface.
+    unawaited(_replanifierArrierePlan(forcer: false));
+
+    return _construireEtat();
+  }
+
+  BiblicalCalendarAdapter _adapter() {
+    final position = SettingsStore.instance.position();
+    return BiblicalCalendarAdapter(
         latitude: position.latitude, longitude: position.longitude);
+  }
+
+  /// CONSTRUCTION COMPLÈTE de l'état depuis le store — pure lecture,
+  /// sans effet de bord : appelée par build() ET par chaque mutation.
+  AlarmsState _construireEtat() {
+    final store = SettingsStore.instance;
+    final adapter = _adapter();
 
     final prefsMatin = store.alarme(
         SettingsStore.cleAlarmeMatin, AlarmPlanner.messageMatinDefaut);
-    final prefsPreparation = store.alarme(SettingsStore.cleAlarmePreparation,
-        AlarmPlanner.messagePreparationDefaut);
     final prefsSoir = store.alarme(
         SettingsStore.cleAlarmeSoir, AlarmPlanner.messageSoirDefaut);
 
@@ -107,11 +127,6 @@ class AlarmsController extends Notifier<AlarmsState> {
             nom: 'RHEMA du matin',
             message: prefsMatin.message,
             activee: prefsMatin.activee),
-        AlarmeSpirituelle(
-            type: TypeAlarme.preparationSoir,
-            nom: 'Préparation du soir',
-            message: prefsPreparation.message,
-            activee: prefsPreparation.activee),
         AlarmeSpirituelle(
             type: TypeAlarme.rhemaSoir,
             nom: 'RHEMA du soir',
@@ -140,16 +155,6 @@ class AlarmsController extends Notifier<AlarmsState> {
         couleurHex: '#3B82F6',
       ),
       AlarmeAffichee(
-        type: TypeAlarme.preparationSoir,
-        cle: SettingsStore.cleAlarmePreparation,
-        nom: 'Préparation du soir',
-        sousTitre: '${prefsPreparation.minutesAvant} minutes avant le '
-            'coucher du soleil réel (réglable)',
-        prefs: prefsPreparation,
-        prochainInstant: instant(TypeAlarme.preparationSoir),
-        couleurHex: '#CFA63A',
-      ),
-      AlarmeAffichee(
         type: TypeAlarme.rhemaSoir,
         cle: SettingsStore.cleAlarmeSoir,
         nom: 'RHEMA du soir',
@@ -173,14 +178,6 @@ class AlarmsController extends Notifier<AlarmsState> {
             ))
         .toList();
 
-    // Reprogrammation native si nécessaire (démarrage / changement).
-    // Sérialisée par PrayerAlarmEngine (voir reprogrammer).
-    unawaited(PrayerAlarmEngine.instance.reprogrammer(adapter: adapter));
-
-    // L'écran de verrouillage affiche la prochaine alarme : instantané
-    // à jour dès le démarrage et après chaque changement (§9.5).
-    unawaited(WallpaperService.actualiserSnapshot());
-
     return AlarmsState(
       alarmes: alarmes,
       personnalisees: personnalisees,
@@ -188,63 +185,57 @@ class AlarmsController extends Notifier<AlarmsState> {
     );
   }
 
-  BiblicalCalendarAdapter _adapterDepuisPosition(
-          PositionUtilisateur position) =>
-      BiblicalCalendarAdapter(
-        latitude: position.latitude,
-        longitude: position.longitude,
-      );
+  /// AFFECTE l'état reconstruit — l'interface se met à jour INSTANTANÉMENT.
+  /// Toute erreur est contenue : la mutation ne peut plus laisser l'écran
+  /// figé (défaut « rouvrir l'application » corrigé).
+  void _rafraichirEtat() {
+    try {
+      state = _construireEtat();
+    } catch (_) {
+      // Reconstruction impossible (cas extrême) : l'état actuel reste
+      // affiché — jamais de crash d'interface pour un rafraîchissement.
+    }
+  }
 
-  /// Active / désactive une alarme puis reprogramme nativement (§8.4).
-  /// L'ÉTAT EST RECONSTRUIT IMMÉDIATEMENT : l'interrupteur réagit sans
-  /// quitter l'application (défaut corrigé).
+  /// Replanification native en arrière-plan + instantané du verrouillage.
+  Future<void> _replanifierArrierePlan({required bool forcer}) async {
+    try {
+      await PrayerAlarmEngine.instance.reprogrammer(
+          adapter: _adapter(), forcer: forcer);
+    } catch (_) {
+      // L'interface reste à jour même si les appels natifs échouent — la
+      // prochaine replanification (démarrage, changement de jour) retente.
+    }
+    unawaited(WallpaperService.actualiserSnapshot());
+  }
+
+  /// Active / désactive une alarme puis replanifie nativement (§8.4).
   Future<void> basculer(AlarmeAffichee alarme, bool valeur) async {
     final store = SettingsStore.instance;
     final prefs = store.alarme(alarme.cle, alarme.prefs.message);
     await store.sauvegarderAlarme(alarme.cle, prefs.copyWith(activee: valeur));
-    await PrayerAlarmEngine.instance.reprogrammer(
-        adapter: _adapterDepuisPosition(ref.read(horlogeProvider).position),
-        forcer: true);
-    ref.invalidateSelf();
+    _rafraichirEtat(); // Interrupteur réactif — sans attendre le natif.
+    await _replanifierArrierePlan(forcer: true);
   }
 
-  /// Change le message personnalisé d'une alarme (§8.4), puis reprogramme
-  /// pour que le nouveau message s'applique dès la prochaine sonnerie.
+  /// Change le message personnalisé d'une alarme (§8.4).
   Future<void> changerMessage(AlarmeAffichee alarme, String message) async {
     final store = SettingsStore.instance;
     final prefs = store.alarme(alarme.cle, alarme.prefs.message);
     await store.sauvegarderAlarme(alarme.cle, prefs.copyWith(message: message));
-    await PrayerAlarmEngine.instance.reprogrammer(
-        adapter: _adapterDepuisPosition(ref.read(horlogeProvider).position),
-        forcer: true);
-    ref.invalidateSelf();
+    _rafraichirEtat();
+    await _replanifierArrierePlan(forcer: true);
   }
 
-  /// Change l'HEURE d'une alarme à heure fixe (RHEMA du matin — §8.4),
-  /// puis reprogramme immédiatement — affichage instantané.
+  /// Change l'HEURE d'une alarme à heure fixe (RHEMA du matin — §8.4).
   Future<void> changerHeure(
       AlarmeAffichee alarme, int heure, int minute) async {
     final store = SettingsStore.instance;
     final prefs = store.alarme(alarme.cle, alarme.prefs.message);
     await store.sauvegarderAlarme(
         alarme.cle, prefs.copyWith(heure: heure, minute: minute));
-    await PrayerAlarmEngine.instance.reprogrammer(
-        adapter: _adapterDepuisPosition(ref.read(horlogeProvider).position),
-        forcer: true);
-    ref.invalidateSelf();
-  }
-
-  /// Change le décalage en minutes avant le coucher réel (Préparation du
-  /// soir — §8.4), puis reprogramme immédiatement.
-  Future<void> changerMinutesAvant(AlarmeAffichee alarme, int minutes) async {
-    final store = SettingsStore.instance;
-    final prefs = store.alarme(alarme.cle, alarme.prefs.message);
-    await store.sauvegarderAlarme(
-        alarme.cle, prefs.copyWith(minutesAvant: minutes));
-    await PrayerAlarmEngine.instance.reprogrammer(
-        adapter: _adapterDepuisPosition(ref.read(horlogeProvider).position),
-        forcer: true);
-    ref.invalidateSelf();
+    _rafraichirEtat();
+    await _replanifierArrierePlan(forcer: true);
   }
 
   /// Change la vibration / le son d'une alarme (§8.4) — affichage instantané.
@@ -254,16 +245,14 @@ class AlarmsController extends Notifier<AlarmsState> {
     final prefs = store.alarme(alarme.cle, alarme.prefs.message);
     await store.sauvegarderAlarme(
         alarme.cle, prefs.copyWith(vibration: vibration, son: son));
-    await PrayerAlarmEngine.instance.reprogrammer(
-        adapter: _adapterDepuisPosition(ref.read(horlogeProvider).position),
-        forcer: true);
-    ref.invalidateSelf();
+    _rafraichirEtat();
+    await _replanifierArrierePlan(forcer: true);
   }
 
   // ── Alarmes PERSONNALISÉES (§8.5) ──────────────────────────────────
 
-  /// Crée une alarme personnalisée (heure libre + tâche) et la planifie
-  /// nativement (répétition quotidienne — §8.5).
+  /// Crée une alarme personnalisée (heure libre + tâche) : sauvegarde,
+  /// AFFICHAGE IMMÉDIAT dans la liste, puis planification native.
   Future<void> ajouterPersonnalisee({
     required String libelle,
     required int heure,
@@ -286,10 +275,8 @@ class AlarmsController extends Notifier<AlarmsState> {
       ),
     ));
     await store.sauvegarderAlarmesPersonnalisees(alarmes);
-    await PrayerAlarmEngine.instance.reprogrammer(
-        adapter: _adapterDepuisPosition(ref.read(horlogeProvider).position),
-        forcer: true);
-    ref.invalidateSelf();
+    _rafraichirEtat(); // La nouvelle alarme apparaît AUSSI TÔT.
+    await _replanifierArrierePlan(forcer: true);
   }
 
   /// Active / désactive une alarme personnalisée.
@@ -303,10 +290,8 @@ class AlarmsController extends Notifier<AlarmsState> {
         libelle: alarmes[i].libelle,
         prefs: alarmes[i].prefs.copyWith(activee: valeur));
     await store.sauvegarderAlarmesPersonnalisees(alarmes);
-    await PrayerAlarmEngine.instance.reprogrammer(
-        adapter: _adapterDepuisPosition(ref.read(horlogeProvider).position),
-        forcer: true);
-    ref.invalidateSelf();
+    _rafraichirEtat();
+    await _replanifierArrierePlan(forcer: true);
   }
 
   /// Change l'heure d'une alarme personnalisée.
@@ -320,10 +305,8 @@ class AlarmsController extends Notifier<AlarmsState> {
         libelle: alarmes[i].libelle,
         prefs: alarmes[i].prefs.copyWith(heure: heure, minute: minute));
     await store.sauvegarderAlarmesPersonnalisees(alarmes);
-    await PrayerAlarmEngine.instance.reprogrammer(
-        adapter: _adapterDepuisPosition(ref.read(horlogeProvider).position),
-        forcer: true);
-    ref.invalidateSelf();
+    _rafraichirEtat();
+    await _replanifierArrierePlan(forcer: true);
   }
 
   /// Change la vibration d'une alarme personnalisée.
@@ -337,10 +320,8 @@ class AlarmsController extends Notifier<AlarmsState> {
         libelle: alarmes[i].libelle,
         prefs: alarmes[i].prefs.copyWith(vibration: vibration));
     await store.sauvegarderAlarmesPersonnalisees(alarmes);
-    await PrayerAlarmEngine.instance.reprogrammer(
-        adapter: _adapterDepuisPosition(ref.read(horlogeProvider).position),
-        forcer: true);
-    ref.invalidateSelf();
+    _rafraichirEtat();
+    await _replanifierArrierePlan(forcer: true);
   }
 
   /// Supprime une alarme personnalisée (les notifications natives sont
@@ -350,16 +331,14 @@ class AlarmsController extends Notifier<AlarmsState> {
     final alarmes =
         store.alarmesPersonnalisees().where((a) => a.id != id).toList();
     await store.sauvegarderAlarmesPersonnalisees(alarmes);
-    await PrayerAlarmEngine.instance.reprogrammer(
-        adapter: _adapterDepuisPosition(ref.read(horlogeProvider).position),
-        forcer: true);
-    ref.invalidateSelf();
+    _rafraichirEtat();
+    await _replanifierArrierePlan(forcer: true);
   }
 
   /// Enregistre une notification reçue dans l'historique (§8.4).
   Future<void> notifierRecue(String titre, String corps) async {
     await PrayerAlarmEngine.instance.enregistrerNotificationRecue(titre, corps);
-    ref.invalidateSelf();
+    _rafraichirEtat();
   }
 }
 

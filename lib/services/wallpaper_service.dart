@@ -70,16 +70,8 @@ class WallpaperService {
         'activee': matin.activee,
       });
 
-      // Préparation du soir — coucher réel − N minutes (le wallpaper
-      // recalcule le coucher avec le même algorithme NOAA).
-      final preparation =
-          store.alarme(SettingsStore.cleAlarmePreparation, '');
-      alarmes.add({
-        'libelle': 'Préparation du soir',
-        'type': 'preparation',
-        'minutesAvant': preparation.minutesAvant,
-        'activee': preparation.activee,
-      });
+      // « Préparation du soir » retirée de l'application (v1.0.7) — elle
+      // n'apparaît plus sur l'écran de verrouillage non plus.
 
       // RHEMA du soir — au coucher du soleil réel.
       final soir = store.alarme(SettingsStore.cleAlarmeSoir, '');

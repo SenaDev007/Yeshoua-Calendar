@@ -2,7 +2,9 @@
 ///
 /// Orchestration des trois alarmes : planification via [AlarmPlanner]
 /// (moteur testé), envoi vers les notifications natives, historique et
-/// reprogrammation. Reprogrammation déclenchée :
+/// reprogrammation. Depuis v1.0.7 : deux RHEMA uniquement (la carte
+/// « Préparation du soir » a été retirée à la demande de l'utilisateur).
+/// Reprogrammation déclenchée :
 ///   • une fois par jour (après le RHEMA du soir, au prochain tick) ;
 ///   • après un changement de localisation ;
 ///   • au démarrage de l'application (redémarrage du téléphone) ;
@@ -72,6 +74,9 @@ class PrayerAlarmEngine {
 
     final prefs = _prefsDepuisStore(store);
 
+    // « PRÉPARATION DU SOIR » SUPPRIMÉE (demande utilisateur v1.0.7) :
+    // seuls le RHEMA du matin et le RHEMA du soir sont planifiés — plus
+    // aucune notification « Préparation du soir » invisible.
     final alarmes = [
       AlarmeSpirituelle(
         type: TypeAlarme.rhemaMatin,
@@ -89,20 +94,6 @@ class PrayerAlarmEngine {
         heure: prefs.matin.heure,
         minute: prefs.matin.minute,
         minutesAvant: prefs.matin.minutesAvant,
-      ),
-      AlarmeSpirituelle(
-        type: TypeAlarme.preparationSoir,
-        nom:
-            'Préparation du soir — ${prefs.preparation.minutesAvant} min avant le coucher',
-        message: prefs.preparation.message.isEmpty
-            ? AlarmPlanner.messagePreparationDefaut
-            : prefs.preparation.message,
-        activee: prefs.preparation.activee,
-        vibration: prefs.preparation.vibration,
-        son: prefs.preparation.son,
-        heure: prefs.preparation.heure,
-        minute: prefs.preparation.minute,
-        minutesAvant: prefs.preparation.minutesAvant,
       ),
       AlarmeSpirituelle(
         type: TypeAlarme.rhemaSoir,
@@ -131,7 +122,16 @@ class PrayerAlarmEngine {
     );
 
     // Reprise propre puis reprogrammation complète (évite les doublons).
-    await NotificationService.instance.annulerTout();
+    // annulerTout est PROTÉGÉ : un échec ici ne doit jamais interrompre la
+    // reprogrammation (l'ancien code laissait une exception remonter
+    // jusqu'aux mutations de l'interface — alarmes non planifiées ET
+    // interface figée jusqu'au redémarrage, défaut constaté v1.0.6+7 :
+    // alarme de 13 h 14 jamais sonnée).
+    try {
+      await NotificationService.instance.annulerTout();
+    } catch (_) {
+      // Les zonedSchedule suivants écraseront de toute façon les mêmes IDs.
+    }
     for (final a in plan) {
       try {
         if (a.type == TypeAlarme.rhemaMatin) {
@@ -154,7 +154,7 @@ class PrayerAlarmEngine {
             son: a.son,
             payload: a.type == TypeAlarme.rhemaSoir
                 ? 'rhema_soir'
-                : 'preparation_soir',
+                : 'alarme_soir',
           );
         }
       } catch (_) {
@@ -253,8 +253,6 @@ class PrayerAlarmEngine {
   _AlarmesPrefs _prefsDepuisStore(SettingsStore store) => _AlarmesPrefs(
         matin: store.alarme(
             SettingsStore.cleAlarmeMatin, AlarmPlanner.messageMatinDefaut),
-        preparation: store.alarme(SettingsStore.cleAlarmePreparation,
-            AlarmPlanner.messagePreparationDefaut),
         soir: store.alarme(
             SettingsStore.cleAlarmeSoir, AlarmPlanner.messageSoirDefaut),
       );
@@ -262,12 +260,10 @@ class PrayerAlarmEngine {
 
 class _AlarmesPrefs {
   final AlarmePrefs matin;
-  final AlarmePrefs preparation;
   final AlarmePrefs soir;
 
   const _AlarmesPrefs({
     required this.matin,
-    required this.preparation,
     required this.soir,
   });
 }

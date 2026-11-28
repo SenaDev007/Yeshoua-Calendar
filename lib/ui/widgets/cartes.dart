@@ -213,16 +213,24 @@ class CartePeriodeVisuelle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        decoration: BoxDecoration(
-          border:
-              Border.all(color: AppColors.orSolaire.withValues(alpha: 0.45)),
-        ),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
+    // ⚠️ HAUTEUR BORNÉE OBLIGATOIRE : cette carte est posée dans une
+    // ListView (hauteur non bornée). Le Stack en StackFit.expand avec une
+    // image « cover » héritait d'une hauteur INFINIE en release — le reste
+    // de la page d'accueil devenait invisible (seule la première carte
+    // s'affichait, défaut constaté v1.0.6+7). L'AspectRatio fixe la
+    // hauteur à largeur / 1.55 — proportion proche du GIF (560 × 340).
+    return AspectRatio(
+      aspectRatio: 1.55,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border.all(
+                color: AppColors.orSolaire.withValues(alpha: 0.45)),
+          ),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
             // ── Image animée de la phase (lever/soleil du jour ou nuit) ──
             Image.asset(
               nuit ? _gifNuit : _gifJour,
@@ -358,6 +366,7 @@ class CartePeriodeVisuelle extends StatelessWidget {
               ),
             ),
           ],
+          ),
         ),
       ),
     );

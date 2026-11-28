@@ -108,16 +108,25 @@ const List<String> joursHebreuCourts = [
 ];
 
 /// Noms de jours du MOTEUR (Dimanche … Samedi) → index 0..6 des listes
-/// ci-dessus (Dimanche = 6 en weekday Dart, mais jour 1 biblique).
+/// ci-dessus, qui sont INDEXÉES COMME LE WEEKDAY DART (0 = lundi …
+/// 6 = dimanche) :
+///   • « Lundi » (moteur, jour 2)   → index 0 → joursFrancais[0] = 'lundi' ;
+///   • « Samedi » (moteur, jour 7)  → index 5 → joursFrancais[5] = 'samedi'
+///     et joursHebreuCourts[5] = 'Shabbat' ;
+///   • « Dimanche » (moteur, jour 1) → index 6 → 'dimanche' / 'Yom Ehad'.
+/// ⚠️ L'ANCIENNE VERSION alignait l'ordre du MOTEUR (Dimanche = 0) sur ces
+/// listes (Lundi = 0) : TOUT était décalé d'un jour — la carte du Shabbat
+/// (samedi) affichait « dim. » / « Ehad », ce qui donnait l'impression que
+/// le dimanche était pris pour le Shabbat (défaut corrigé v1.0.7).
 int _indiceJourMoteur(String nomJourMoteur) {
   const ordre = [
-    'Dimanche',
     'Lundi',
     'Mardi',
     'Mercredi',
     'Jeudi',
     'Vendredi',
     'Samedi',
+    'Dimanche',
   ];
   final i = ordre.indexOf(nomJourMoteur);
   return i < 0 ? 0 : i;
