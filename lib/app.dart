@@ -7,7 +7,12 @@
 ///   5. Alarmes      — les trois RHEMA (§8).
 ///
 /// NavigationBar Material 3, état préservé par IndexedStack.
+/// BASCULE AUTOMATIQUE : les pages Accueil et Horloge s'échangent toutes
+/// les 5 secondes avec une animation (§11 — demande utilisateur) ; l'horloge
+/// ANALOGIQUE est toujours affichée lorsque la page Horloge apparaît.
 library;
+
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -63,6 +68,43 @@ class CoquilleNavigation extends ConsumerStatefulWidget {
 
 class _CoquilleNavigationState extends ConsumerState<CoquilleNavigation> {
   int _index = 0;
+  Timer? _basculeAutomatique;
+
+  /// Durée entre deux bascules Accueil ⇄ Horloge (demande : 5 s).
+  static const Duration _delaiBascule = Duration(seconds: 5);
+
+  @override
+  void initState() {
+    super.initState();
+    _basculeAutomatique = Timer.periodic(_delaiBascule, (_) => _basculer());
+  }
+
+  @override
+  void dispose() {
+    _basculeAutomatique?.cancel();
+    super.dispose();
+  }
+
+  /// Bascule animée Accueil ⇄ Horloge toutes les 5 s — uniquement lorsque
+  /// l'une des deux pages est visible (jamais sur Calendrier/Alarmes, et
+  /// jamais pendant qu'un écran plein (Paramètres…) est ouvert).
+  void _basculer() {
+    if (!mounted) return;
+    if (_index != 0 && _index != 1) return;
+    // Un itinéraire poussé (Paramètres…) recouvre la coquille : on s'arrête.
+    if (Navigator.of(context, rootNavigator: true).canPop()) return;
+    setState(() {
+      _index = _index == 0 ? 1 : 0;
+      if (_index == 1) {
+        // En arrivant sur la page Horloge, l'HORLOGE ANALOGIQUE doit être
+        // vue (demande utilisateur explicite).
+        final settings = ref.read(settingsProvider);
+        if (!settings.horlogeAnalogique) {
+          ref.read(settingsProvider.notifier).basculerHorlogeAnalogique(true);
+        }
+      }
+    });
+  }
 
   static const List<String> _titres = [
     'Accueil',
@@ -138,15 +180,33 @@ class _CoquilleNavigationState extends ConsumerState<CoquilleNavigation> {
           ),
         ],
       ),
-      body: IndexedStack(
-        index: _index,
-        children: const [
-          AccueilScreen(),
-          HorlogeScreen(),
-          TempsBibliqueScreen(),
-          CalendrierScreen(),
-          AlarmesScreen(),
-        ],
+      body: AnimatedSwitcher(
+        // Transition douce entre les deux pages qui basculent (§11).
+        duration: const Duration(milliseconds: 600),
+        switchInCurve: Curves.easeOutCubic,
+        switchOutCurve: Curves.easeInCubic,
+        transitionBuilder: (enfant, animation) => FadeTransition(
+          opacity: animation,
+          child: SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0.0, 0.02),
+              end: Offset.zero,
+            ).animate(animation),
+            child: enfant,
+          ),
+        ),
+        child: IndexedStack(
+          // La clé déclenche l'animation à chaque bascule d'index.
+          key: ValueKey<int>(_index),
+          index: _index,
+          children: const [
+            AccueilScreen(),
+            HorlogeScreen(),
+            TempsBibliqueScreen(),
+            CalendrierScreen(),
+            AlarmesScreen(),
+          ],
+        ),
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,

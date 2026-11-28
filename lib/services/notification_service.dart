@@ -17,6 +17,7 @@ library;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
@@ -28,6 +29,14 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
 
   bool _initialise = false;
+
+  /// Alarmes EXACTES autorisées par le système (Android 12+). Si false,
+  /// les alarmes sont planifiées en mode INEXACT (elles sonnent quand
+  /// même, dans une fenêtre système) — JAMAIS d'exception avalée qui
+  /// laisse l'alarme muette (défaut majeur corrigé §8.4).
+  bool _exactAutorisees = true;
+
+  bool get exactAlarmsAutorisees => _exactAutorisees;
 
   /// Callback quand l'utilisateur touche une notification (ouverture d'app).
   /// [titre] et [corps] alimentent l'historique local (§8.4).
@@ -60,8 +69,10 @@ class NotificationService {
           'rhema_matin': 'RHEMA du matin',
           'preparation_soir': 'Préparation du soir',
           'rhema_soir': 'RHEMA du soir',
+          'alarme_custom': 'Alarme personnalisée',
           'shofar_shabbat': 'Shofar — entrée du Shabbat',
           'shofar_fete': 'Shofar — entrée de fête',
+          'rappel_shabbat_j24h': 'Rappel — Shabbat dans 24 heures',
           'rappel_j7': 'Rappel de fête — J-7',
           'rappel_j3': 'Rappel de fête — J-3',
           'rappel_j24h': 'Rappel de fête — 24 h',
@@ -79,10 +90,93 @@ class NotificationService {
       // Alarmes EXACTES Android 12+ : demandées si nécessaires ; le repli
       // inexact reste fonctionnel (notification dans la fenêtre système).
       await androidImpl?.requestExactAlarmsPermission();
+      // Mémorise la décision système (Permission.scheduleExactAlarm —
+      // permission_handler) : zonedSchedule lèverait une exception en mode
+      // exact sans permission — ce qui LAISSAIT LES ALARMES MUETTES.
+      // Désormais : repli inexact automatique (voir _planifierRobuste).
+      _exactAutorisees = await _verifierAlarmesExactes();
       await _creerCanauxAndroid();
     }
 
     _initialise = true;
+  }
+
+  /// Statut réel des alarmes exactes (Android 12+). Sur les versions
+  /// antérieures (ou toute erreur), on considère les alarmes exactes
+  /// autorisées — elles ne demandaient jamais de permission avant Android 12.
+  Future<bool> _verifierAlarmesExactes() async {
+    try {
+      final statut = await Permission.scheduleExactAlarm.status;
+      return statut.isGranted || statut.isLimited || statut.isProvisional;
+    } catch (_) {
+      return true;
+    }
+  }
+
+  /// Planification ROBUSTE : tente le mode EXACT, et si le système le
+  /// refuse (permission absente, OEM restrictif), replie automatiquement
+  /// sur le mode INEXACT — l'alarme sonne DANS TOUS LES CAS (l'ancien code
+  /// laissait l'exception avalée par les catch du moteur : alarmes jamais
+  /// déclenchées — défaut majeur corrigé).
+  Future<void> _planifierRobuste({
+    required int id,
+    required String titre,
+    required String corps,
+    required tz.TZDateTime cible,
+    required NotificationDetails details,
+    required String payload,
+    bool repetitionQuotidienne = false,
+  }) async {
+    try {
+      await _plugin.zonedSchedule(
+        id,
+        titre,
+        corps,
+        cible,
+        details,
+        matchDateTimeComponents:
+            repetitionQuotidienne ? DateTimeComponents.time : null,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        payload: payload,
+      );
+    } catch (_) {
+      // Repli : inexact (l'alarme sonne dans une fenêtre système large).
+      try {
+        await _plugin.zonedSchedule(
+          id,
+          titre,
+          corps,
+          cible,
+          details,
+          matchDateTimeComponents:
+              repetitionQuotidienne ? DateTimeComponents.time : null,
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+          payload: payload,
+        );
+      } catch (_) {
+        // Double échec (fuseau, système) : l'appelant journalise au besoin.
+        rethrow;
+      }
+    }
+  }
+
+  /// Ouvre l'écran système des alarmes exactes (Android 12+) via
+  /// permission_handler — la demande montre directement les réglages.
+  Future<void> ouvrirParametresAlarmesExactes() async {
+    try {
+      await Permission.scheduleExactAlarm.request();
+      _exactAutorisees = await _verifierAlarmesExactes();
+    } catch (_) {
+      try {
+        await openAppSettings();
+      } catch (_) {
+        // Plateforme sans réglage dédié : rien à faire.
+      }
+    }
   }
 
   Future<void> _creerCanauxAndroid() async {
@@ -152,19 +246,45 @@ class NotificationService {
     if (!cible.isAfter(now)) {
       cible = cible.add(const Duration(days: 1));
     }
-    await _plugin.zonedSchedule(
-      id,
-      titre,
-      corps,
-      cible,
-      _details(vibration: vibration, son: son),
-      // Répétition quotidienne à la même heure locale — le coucher du
-      // soleil n'étant PAS concerné, une répétition fixe est correcte.
-      matchDateTimeComponents: DateTimeComponents.time,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+    // Répétition quotidienne à la même heure locale — le coucher du
+    // soleil n'étant PAS concerné, une répétition fixe est correcte.
+    // Planification robuste : exact, puis inexact si le système refuse.
+    await _planifierRobuste(
+      id: id,
+      titre: titre,
+      corps: corps,
+      cible: cible,
+      details: _details(vibration: vibration, son: son),
       payload: 'rhema_matin',
+      repetitionQuotidienne: true,
+    );
+  }
+
+  /// Planifie une ALARME PERSONNALISÉE (§8.5) — répétition quotidienne à
+  /// l'heure choisie, sonnerie au choix, plein écran, exacte si permise.
+  Future<void> planifierPersonnalisee({
+    required int id,
+    required String titre,
+    required String corps,
+    required bool vibration,
+    required String son,
+    required int heure,
+    required int minute,
+  }) async {
+    final now = tz.TZDateTime.now(tz.local);
+    var cible =
+        tz.TZDateTime(tz.local, now.year, now.month, now.day, heure, minute);
+    if (!cible.isAfter(now)) {
+      cible = cible.add(const Duration(days: 1));
+    }
+    await _planifierRobuste(
+      id: id,
+      titre: titre,
+      corps: corps,
+      cible: cible,
+      details: _details(vibration: vibration, son: son),
+      payload: 'alarme_custom',
+      repetitionQuotidienne: true,
     );
   }
 
@@ -180,17 +300,37 @@ class NotificationService {
   }) async {
     final cible = tz.TZDateTime.from(instant, tz.local);
     if (!cible.isAfter(tz.TZDateTime.now(tz.local))) return;
-    await _plugin.zonedSchedule(
-      id,
-      titre,
-      corps,
-      cible,
-      _details(vibration: vibration, son: son),
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+    await _planifierRobuste(
+      id: id,
+      titre: titre,
+      corps: corps,
+      cible: cible,
+      details: _details(vibration: vibration, son: son),
       payload: payload,
     );
+  }
+
+  /// TEST DE SONNERIE (§8.4) — déclenche IMMÉDIATEMENT une notification
+  /// réelle dans le canal du son choisi : l'utilisateur entend exactement
+  /// ce que l'alarme produira (même son, même vibration), app ouverte ou
+  /// fermée, téléphone en silencieux inclus (vibration du canal).
+  Future<void> testerSonnerie({
+    required String son,
+    required bool vibration,
+    String titre = 'Test de sonnerie',
+    String corps = 'C\u2019est exactement le son de votre alarme. Shalom !',
+  }) async {
+    try {
+      await _plugin.show(
+        999999,
+        titre,
+        corps,
+        _details(vibration: vibration, son: son),
+        payload: 'test_sonnerie',
+      );
+    } catch (_) {
+      // Le test ne doit jamais bloquer l'interface.
+    }
   }
 
   /// Annule toutes les alarmes planifiées (changement de position,

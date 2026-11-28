@@ -25,22 +25,15 @@ class HorlogeScreen extends ConsumerWidget {
 
     final enNuit = periode is NuitEnCours;
 
-    // Bornes RÉELLES de l'arc du cadran analogique (§6.2) : coucher → lever
-    // la nuit, lever → coucher le jour — miroir de BiblicalTimeEngine.
-    DateTime? coucherArc, leverArc;
+    // Origine du cadran BIBLIQUE 24 h : le DERNIER coucher du soleil réel
+    // (heure biblique 01:00, positionnée à gauche du cadran — §6.2).
+    DateTime? dernierCoucher;
     if (etat.solarJour?.calculable ?? false) {
-      if (enNuit) {
-        if (etat.solarJour!.coucher != null &&
-            !etat.maintenant.isBefore(etat.solarJour!.coucher!)) {
-          coucherArc = etat.solarJour!.coucher;
-          leverArc = etat.solarSuivant?.lever;
-        } else {
-          coucherArc = etat.solarPrecedent?.coucher;
-          leverArc = etat.solarJour!.lever;
-        }
+      final coucherJour = etat.solarJour!.coucher;
+      if (coucherJour != null && !etat.maintenant.isBefore(coucherJour)) {
+        dernierCoucher = coucherJour;
       } else {
-        leverArc = etat.solarJour!.lever;
-        coucherArc = etat.solarJour!.coucher;
+        dernierCoucher = etat.solarPrecedent?.coucher;
       }
     }
 
@@ -52,9 +45,11 @@ class HorlogeScreen extends ConsumerWidget {
     final sousLabel = periode is NuitEnCours
         ? (periode).veille.sousTitre
         : periode is JourEnCours
-            ? (periode).parties.firstWhere(
-                (p) => p.statut == StatutPeriode.enCours,
-                orElse: () => (periode).parties.first).designation
+            ? (periode)
+                .parties
+                .firstWhere((p) => p.statut == StatutPeriode.enCours,
+                    orElse: () => (periode).parties.first)
+                .designation
             : '—';
 
     return ListView(
@@ -106,8 +101,8 @@ class HorlogeScreen extends ConsumerWidget {
                         labelPeriode: labelPeriode,
                         sousLabelPeriode: sousLabel,
                         nuit: enNuit,
-                        coucherArc: coucherArc,
-                        leverArc: leverArc,
+                        dernierCoucher: dernierCoucher,
+                        prochainCoucher: etat.prochainCoucher,
                       ),
                     ),
                     const SizedBox(height: 14),
@@ -121,7 +116,9 @@ class HorlogeScreen extends ConsumerWidget {
                       shaderCallback: (bounds) => LinearGradient(
                         colors: [
                           AppColors.bleuCiel,
-                          enNuit ? AppColors.orSolaire : AppColors.bleuCielFonce,
+                          enNuit
+                              ? AppColors.orSolaire
+                              : AppColors.bleuCielFonce,
                         ],
                       ).createShader(bounds),
                       child: Text(
@@ -136,8 +133,17 @@ class HorlogeScreen extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
+                    // DATE BIBLIQUE — bascule au COUCHER DU SOLEIL RÉEL,
+                    // jamais à minuit (§7) : à 18 h 00 le jour affiché
+                    // devient déjà le jour suivant.
                     Text(
-                      dateLongueFrancais(etat.maintenant),
+                      etat.jourBiblique != null
+                          ? 'Date biblique — '
+                              '${etat.jourBiblique!.jourDuMois} ${etat.jourBiblique!.nomMois} '
+                              '(${etat.jourBiblique!.nomJourSemaine}) '
+                              '— change au coucher du soleil'
+                          : dateLongueFrancais(etat.maintenant),
+                      textAlign: TextAlign.center,
                       style: const TextStyle(
                         color: AppColors.grisSecondaire,
                         fontSize: 13,
@@ -148,9 +154,8 @@ class HorlogeScreen extends ConsumerWidget {
                       width: double.infinity,
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: enNuit
-                            ? AppColors.ardoise
-                            : AppColors.bleuCielNuit,
+                        color:
+                            enNuit ? AppColors.ardoise : AppColors.bleuCielNuit,
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(
                             color: AppColors.orSolaire.withValues(alpha: 0.4)),
@@ -244,12 +249,11 @@ class HorlogeScreen extends ConsumerWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color:
-                                AppColors.orSolaire.withValues(alpha: 0.14),
+                            color: AppColors.orSolaire.withValues(alpha: 0.14),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                                color:
-                                    AppColors.orSolaire.withValues(alpha: 0.45)),
+                                color: AppColors.orSolaire
+                                    .withValues(alpha: 0.45)),
                           ),
                           child: const Text(
                             'Shabbat — du coucher au coucher',
@@ -278,7 +282,8 @@ class HorlogeScreen extends ConsumerWidget {
               children: [
                 const Row(
                   children: [
-                    Icon(Icons.hourglass_bottom, size: 17, color: AppColors.orSolaire),
+                    Icon(Icons.hourglass_bottom,
+                        size: 17, color: AppColors.orSolaire),
                     SizedBox(width: 8),
                     Text(
                       'Compte à rebours du nouveau jour',

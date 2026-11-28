@@ -190,8 +190,56 @@ class PrayerAlarmEngine {
           // Sonnerie suivante.
         }
       }
+
+      // ── RAPPEL SHABBAT J-24 h (§8.5 — demande utilisateur) : 24 heures
+      // avant l'entrée de CHAQUE Shabbat, une notification d'approche —
+      // miroir des jalons J-7 / J-3 / J-24 h des fêtes, ajouté ici (couche
+      // app) pour préserver les tests du moteur.
+      var idxRappelShabbat = 600;
+      for (final e in evenements) {
+        if (e.type != 'shabbat') continue;
+        final jalon = e.entree.subtract(const Duration(hours: 24));
+        if (!jalon.isAfter(maintenant)) continue;
+        try {
+          await NotificationService.instance.planifierOneShot(
+            id: idxRappelShabbat++,
+            titre: 'Rappel — Shabbat dans 24 heures',
+            corps: 'Le Shabbat commence dans 24 heures, au coucher du '
+                'soleil : préparez-vous à entrer dans le repos de '
+                'l\u2019Éternel. Shalom !',
+            instant: jalon,
+            vibration: true,
+            son: 'shofar',
+            payload: 'rappel_shabbat_j24h',
+          );
+        } catch (_) {
+          // Rappel suivant.
+        }
+      }
     } catch (_) {
       // La planification des shofars ne doit jamais bloquer les RHEMA.
+    }
+
+    // ── ALARMES PERSONNALISÉES (§8.5) : répétition quotidienne à l'heure
+    // choisie — replanifiées à chaque cycle (annulerTout ci-dessus les a
+    // effacées avec le reste).
+    for (final p in store.alarmesPersonnalisees()) {
+      if (!p.prefs.activee) continue;
+      try {
+        await NotificationService.instance.planifierPersonnalisee(
+          id: p.id,
+          titre: p.libelle,
+          corps: p.prefs.message.isEmpty
+              ? 'Rappel — ${p.libelle}. Shalom !'
+              : p.prefs.message,
+          vibration: p.prefs.vibration,
+          son: p.prefs.son,
+          heure: p.prefs.heure,
+          minute: p.prefs.minute,
+        );
+      } catch (_) {
+        // Une alarme personnalisée en échec ne bloque pas les autres.
+      }
     }
 
     _derniereProgrammation = maintenant;

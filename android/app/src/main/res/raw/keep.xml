@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ⭐ Ressources à CONSERVER malgré shrinkResources=true (build.gradle
+     release) : les fichiers res/raw/*.mp3 ne sont référencés que
+     DYNAMIQUEMENT (RawResourceAndroidNotificationSound) — sans cette
+     règle tools:keep, le shrinker R8 les supprime de l'AAB et les
+     alarmes sonnent MUETTES (doc flutter_local_notifications, section
+     « Release build configuration »). -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@raw/shofar,@raw/cloche,@raw/harpe" />

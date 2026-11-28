@@ -41,7 +41,8 @@ class PositionUtilisateur {
   static PositionUtilisateur fromJson(Map<String, dynamic> json) =>
       PositionUtilisateur(
         latitude: (json['lat'] as num?)?.toDouble() ?? AppConfig.latitudeDefaut,
-        longitude: (json['lon'] as num?)?.toDouble() ?? AppConfig.longitudeDefaut,
+        longitude:
+            (json['lon'] as num?)?.toDouble() ?? AppConfig.longitudeDefaut,
         libelle: json['libelle'] as String? ?? AppConfig.villeDefaut,
         fuseau: json['fuseau'] as String? ?? AppConfig.fuseauDefaut,
         automatique: json['auto'] as bool? ?? false,
@@ -119,6 +120,36 @@ class AlarmePrefs {
       );
 }
 
+/// ALARME PERSONNALISÉE (§8.5) — créée par l'utilisateur pour n'importe
+/// quelle heure et n'importe quelle tâche (réveil libre, rappel de prière,
+/// tâche du jour…). Répétition quotidienne à l'heure choisie, sonnerie au
+/// choix (shofar / cloche / harpe / silence), vibration optionnelle.
+class AlarmePersonnalisee {
+  final int id; // identifiant natif stable des notifications
+  final String libelle; // tâche / nom affiché
+  final AlarmePrefs prefs; // activee, vibration, son, message, heure, minute
+
+  const AlarmePersonnalisee({
+    required this.id,
+    required this.libelle,
+    required this.prefs,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'libelle': libelle,
+        'prefs': prefs.toJson(),
+      };
+
+  static AlarmePersonnalisee fromJson(Map<String, dynamic> json) =>
+      AlarmePersonnalisee(
+        id: json['id'] as int,
+        libelle: json['libelle'] as String? ?? 'Alarme',
+        prefs: AlarmePrefs.fromJson(
+            Map<String, dynamic>.from(json['prefs'] as Map? ?? const {})),
+      );
+}
+
 class SettingsStore {
   SettingsStore._();
   static final SettingsStore instance = SettingsStore._();
@@ -137,6 +168,8 @@ class SettingsStore {
   static const cleAlarmeMatin = 'hc_alarme_matin';
   static const cleAlarmePreparation = 'hc_alarme_preparation';
   static const cleAlarmeSoir = 'hc_alarme_soir';
+  static const cleAlarmesPersonnalisees = 'hc_alarmes_personnalisees';
+  static const cleCompteurPersonnalisees = 'hc_alarmes_pers_compteur';
   static const cleDerniereTransition = 'hc_derniere_transition';
   static const cleEtatTemporel = 'hc_etat_temporel';
   static const cleHistoriqueNotifications = 'hc_historique_notifications';
@@ -185,6 +218,39 @@ class SettingsStore {
   Future<void> sauvegarderAlarme(String cle, AlarmePrefs a) =>
       prefs.setString(cle, jsonEncode(a.toJson()));
 
+  // ── Alarmes personnalisées (§8.5) ──
+
+  /// Plage d'identifiants natifs réservée aux alarmes personnalisées
+  /// (hors RHEMA 11-13, soirées 30+/50+, shofars 100+/400+).
+  static const int idPersonnaliseesBase = 1000;
+
+  List<AlarmePersonnalisee> alarmesPersonnalisees() {
+    final brut = prefs.getString(cleAlarmesPersonnalisees);
+    if (brut == null) return const [];
+    try {
+      final liste = jsonDecode(brut) as List;
+      return liste
+          .map((e) =>
+              AlarmePersonnalisee.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList();
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  Future<void> sauvegarderAlarmesPersonnalisees(
+          List<AlarmePersonnalisee> alarmes) =>
+      prefs.setString(cleAlarmesPersonnalisees,
+          jsonEncode(alarmes.map((a) => a.toJson()).toList()));
+
+  /// Prochain identifiant natif libre (compteur persisté — jamais de
+  /// collision après désactivation/suppression d'alarmes).
+  int prochainIdPersonnalisee() {
+    final n = prefs.getInt(cleCompteurPersonnalisees) ?? 0;
+    prefs.setInt(cleCompteurPersonnalisees, n + 1);
+    return idPersonnaliseesBase + n;
+  }
+
   // ── État temporel persisté (§13 / §14) ──
 
   String? derniereTransition() => prefs.getString(cleDerniereTransition);
@@ -220,8 +286,7 @@ class SettingsStore {
       'instant': instant.toIso8601String(),
     });
     if (liste.length > 30) liste.removeRange(30, liste.length);
-    return prefs.setString(
-        cleHistoriqueNotifications, jsonEncode(liste));
+    return prefs.setString(cleHistoriqueNotifications, jsonEncode(liste));
   }
 
   bool premierLancementFait() => prefs.getBool(clePremierLancement) ?? false;

@@ -33,15 +33,25 @@ class AccueilScreen extends ConsumerWidget {
     final enJour = periode is JourEnCours;
     final indisponible = periode is PeriodeIndisponible;
 
-    // Prochain rendez-vous spirituel = première alarme planifiée à venir.
-    AlarmeAffichee? prochainRendezVous;
+    // Prochain rendez-vous spirituel = première alarme planifiée à venir
+    // (les trois RHEMA + les alarmes personnalisées §8.5).
+    String? nomProchainRendezVous;
     DateTime? instantLePlusProche;
     for (final a in alarms.alarmes) {
       if (a.prefs.activee && a.prochainInstant != null) {
         if (instantLePlusProche == null ||
             a.prochainInstant!.isBefore(instantLePlusProche)) {
           instantLePlusProche = a.prochainInstant;
-          prochainRendezVous = a;
+          nomProchainRendezVous = a.nom;
+        }
+      }
+    }
+    for (final p in alarms.personnalisees) {
+      if (p.prefs.activee && p.prochainInstant != null) {
+        if (instantLePlusProche == null ||
+            p.prochainInstant!.isBefore(instantLePlusProche)) {
+          instantLePlusProche = p.prochainInstant;
+          nomProchainRendezVous = p.libelle;
         }
       }
     }
@@ -56,6 +66,8 @@ class AccueilScreen extends ConsumerWidget {
           saison: jour != null
               ? ImageSaison.depuisTrimestre(jour.trimestre)
               : ImageSaison.approx(etat.maintenant),
+          // Pilote l'alternance v1 ⇄ v2 des images de saison (2 h).
+          maintenant: etat.maintenant,
           enfant: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -156,7 +168,7 @@ class AccueilScreen extends ConsumerWidget {
             ),
           )
         else if (enNuit)
-          CartePeriodeActive(
+          CartePeriodeVisuelle(
             nuit: true,
             nom: (periode as NuitEnCours).veille.nom,
             sousTitre: (periode).veille.sousTitre,
@@ -166,7 +178,7 @@ class AccueilScreen extends ConsumerWidget {
                 'Jusqu\u2019à ${heureCivilFormat((periode).veille.fin)}',
           )
         else if (enJour)
-          CartePeriodeActive(
+          CartePeriodeVisuelle(
             nuit: false,
             nom:
                 '${_ordinalHeure((periode as JourEnCours).heure.numero)} heure saisonnière',
@@ -243,7 +255,7 @@ class AccueilScreen extends ConsumerWidget {
         const SizedBox(height: 12),
 
         // ── Prochain rendez-vous spirituel ──
-        if (prochainRendezVous != null && instantLePlusProche != null)
+        if (nomProchainRendezVous != null && instantLePlusProche != null)
           CarteCeleste(
             enfant: Row(
               children: [
@@ -275,7 +287,7 @@ class AccueilScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        prochainRendezVous.nom,
+                        nomProchainRendezVous!,
                         style: const TextStyle(
                           color: AppColors.ardoise,
                           fontWeight: FontWeight.w800,

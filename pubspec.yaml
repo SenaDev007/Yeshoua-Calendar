@@ -6,7 +6,7 @@ description: >-
   la nuit, douze heures saisonnières, alarmes spirituelles RHEMA.
   Calculs astronomiques 100 % embarqués — fonctionne hors connexion.
 publish_to: 'none'
-version: 1.0.1+3
+version: 1.0.2+4
 
 environment:
   sdk: '>=3.5.0 <4.0.0'
@@ -38,6 +38,11 @@ dependencies:
   timezone: ^0.9.4
   flutter_timezone: ^3.0.1
 
+  # Aperçu instantané des sonneries (taper sur un mode l'écoute aussitôt).
+  audioplayers: ^6.1.0
+  # Vibration réelle — fonctionne même téléphone en silencieux (§8.4).
+  vibration: ^2.0.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -53,6 +58,13 @@ flutter:
     - assets/images/saison-ete.jpg
     - assets/images/saison-automne.jpg
     - assets/images/saison-hiver.jpg
+    - assets/images/saison-printemps-2.jpg
+    - assets/images/saison-ete-2.jpg
+    - assets/images/saison-automne-2.jpg
+    - assets/images/saison-hiver-2.jpg
+    - assets/images/periode-jour.gif
+    - assets/images/periode-nuit.gif
+    - assets/images/cadran-biblique-fond.png
     - assets/sounds/shofar.mp3
     - assets/sounds/cloche.mp3
     - assets/sounds/harpe.mp3

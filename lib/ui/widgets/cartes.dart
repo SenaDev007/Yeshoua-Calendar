@@ -183,6 +183,187 @@ class CartePeriodeActive extends StatelessWidget {
   }
 }
 
+/// Grande carte héro de la période en cours — VERSION VISUELLE (§11) :
+/// une IMAGE ANIMÉE professionnelle (GIF sans texte) illustre la phase :
+///   • jour  → assets/images/periode-jour.gif  (lever du soleil, phases du jour) ;
+///   • nuit  → assets/images/periode-nuit.gif  (coucher du soleil, phases de la nuit).
+/// Les textes et la barre de progression restent visibles et lisibles,
+/// posés sur un voile dégradé au-dessus de l'animation.
+class CartePeriodeVisuelle extends StatelessWidget {
+  const CartePeriodeVisuelle({
+    super.key,
+    required this.nuit,
+    required this.nom,
+    required this.sousTitre,
+    required this.horodatageCourant,
+    required this.progression,
+    required this.complement,
+  });
+
+  final bool nuit;
+  final String nom;
+  final String sousTitre;
+  final DateTime horodatageCourant;
+  final double progression;
+  final String complement;
+
+  /// GIF animé de la phase en cours (aucun texte dans l'image).
+  static const _gifJour = 'assets/images/periode-jour.gif';
+  static const _gifNuit = 'assets/images/periode-nuit.gif';
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        decoration: BoxDecoration(
+          border:
+              Border.all(color: AppColors.orSolaire.withValues(alpha: 0.45)),
+        ),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // ── Image animée de la phase (lever/soleil du jour ou nuit) ──
+            Image.asset(
+              nuit ? _gifNuit : _gifJour,
+              fit: BoxFit.cover,
+              gaplessPlayback: true,
+            ),
+            // ── Voile dégradé : lisibilité des textes et de la barre ──
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      AppColors.ardoise.withValues(alpha: 0.38),
+                      AppColors.ardoise.withValues(alpha: 0.10),
+                      AppColors.ardoise.withValues(alpha: 0.72),
+                    ],
+                    stops: const [0.0, 0.45, 1.0],
+                  ),
+                ),
+              ),
+            ),
+            // ── Liseré doré signature ──
+            Positioned.fill(
+              child: IgnorePointer(
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(19),
+                    border: Border.all(
+                        color: AppColors.orSolaire.withValues(alpha: 0.5)),
+                  ),
+                ),
+              ),
+            ),
+            // ── Contenu : textes + progression (§11 — toujours lisibles) ──
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        nuit ? Icons.nightlight_round : Icons.wb_sunny_outlined,
+                        size: 16,
+                        color: AppColors.orVif,
+                      ),
+                      const SizedBox(width: 7),
+                      Text(
+                        nuit
+                            ? 'NUIT — VEILLE EN COURS'
+                            : 'JOUR — HEURE SAISONNIÈRE',
+                        style: const TextStyle(
+                          color: AppColors.orVif,
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.2,
+                          shadows: [
+                            Shadow(color: AppColors.ardoise, blurRadius: 6),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    nom,
+                    style: const TextStyle(
+                      color: AppColors.blanc,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 26,
+                      height: 1.15,
+                      shadows: [
+                        Shadow(color: AppColors.ardoise, blurRadius: 8),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    sousTitre,
+                    style: TextStyle(
+                      color: AppColors.blanc.withValues(alpha: 0.90),
+                      fontSize: 13.5,
+                      shadows: const [
+                        Shadow(color: AppColors.ardoise, blurRadius: 8),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: LinearProgressIndicator(
+                      value: progression,
+                      minHeight: 7,
+                      backgroundColor: AppColors.blanc.withValues(alpha: 0.25),
+                      valueColor:
+                          AlwaysStoppedAnimation<Color>(AppColors.orSolaire),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          complement,
+                          style: TextStyle(
+                            color: AppColors.blanc.withValues(alpha: 0.92),
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                            shadows: const [
+                              Shadow(color: AppColors.ardoise, blurRadius: 8),
+                            ],
+                          ),
+                        ),
+                      ),
+                      Text(
+                        '${(progression * 100).round()} %',
+                        style: const TextStyle(
+                          color: AppColors.orVif,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 12.5,
+                          shadows: [
+                            Shadow(color: AppColors.ardoise, blurRadius: 8),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// Boîte de compte à rebours (heures / minutes / secondes).
 class BoitesCompteARebours extends StatelessWidget {
   const BoitesCompteARebours({
