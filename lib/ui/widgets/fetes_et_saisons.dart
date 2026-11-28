@@ -12,6 +12,7 @@ import 'package:horloge_celeste_engine/horloge_celeste_engine.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/models/formatters.dart';
 import 'carte_saisonniere.dart';
+import 'images_fetes.dart';
 
 /// Ouvre le panneau « Fêtes & saisons » de l'année biblique donnée.
 void ouvrirFetesEtSaisons(BuildContext context, AnneeBiblique annee) {
@@ -201,6 +202,7 @@ class _ContenuFetesEtSaisons extends StatelessWidget {
 
   Widget _carteFete(FeteBiblique fete) {
     final couleur = AppColors.depuisHex(fete.couleur);
+    final asset = imagePourFete(fete);
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(13),
@@ -221,6 +223,12 @@ class _ContenuFetesEtSaisons extends StatelessWidget {
         children: [
           Row(
             children: [
+              // IMAGE SYMBOLIQUE de la fête (§7) — agneau de Pessah, matzot,
+              // shofar, cabane de Souccot…
+              if (asset.isNotEmpty) ...[
+                MedaillonFete(asset: asset, taille: 52),
+                const SizedBox(width: 10),
+              ],
               Expanded(
                 child: Text(
                   fete.nomFr,
@@ -253,7 +261,7 @@ class _ContenuFetesEtSaisons extends StatelessWidget {
             runSpacing: 5,
             children: [
               _puce(
-                  '${fete.dateBiblique} · ${dateLongueFrancais(fete.dateGregorienne)}'),
+                  '${fete.dateBiblique} · ${dateCourteFrancais(fete.dateGregorienne)}'),
               if (fete.dureeJours > 1)
                 _puce('Durée : ${fete.dureeJours} jours'),
               if (fete.travailInterdit) _puce('Travail interdit'),

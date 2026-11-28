@@ -12,12 +12,14 @@ import 'horloge_controller.dart';
 class SettingsState {
   final PositionUtilisateur position;
   final bool horlogeAnalogique;
+  final bool modeHebreu;
   final bool chargement;
   final String? message;
 
   const SettingsState({
     required this.position,
     required this.horlogeAnalogique,
+    this.modeHebreu = false,
     this.chargement = false,
     this.message,
   });
@@ -25,12 +27,14 @@ class SettingsState {
   SettingsState copyWith({
     PositionUtilisateur? position,
     bool? horlogeAnalogique,
+    bool? modeHebreu,
     bool? chargement,
     String? message,
   }) =>
       SettingsState(
         position: position ?? this.position,
         horlogeAnalogique: horlogeAnalogique ?? this.horlogeAnalogique,
+        modeHebreu: modeHebreu ?? this.modeHebreu,
         chargement: chargement ?? this.chargement,
         message: message,
       );
@@ -43,6 +47,7 @@ class SettingsController extends Notifier<SettingsState> {
     return SettingsState(
       position: store.position(),
       horlogeAnalogique: store.horlogeAnalogique(),
+      modeHebreu: store.modeHebreu(),
     );
   }
 
@@ -50,8 +55,7 @@ class SettingsController extends Notifier<SettingsState> {
   Future<void> localiserAutomatiquement() async {
     state = state.copyWith(chargement: true, message: null);
     final resultat = await LocationService.instance.positionPonctuelle();
-    if (resultat.statut == StatutLocalisation.ok &&
-        resultat.position != null) {
+    if (resultat.statut == StatutLocalisation.ok && resultat.position != null) {
       await _appliquer(resultat.position!);
       state = state.copyWith(
         chargement: false,
@@ -97,9 +101,15 @@ class SettingsController extends Notifier<SettingsState> {
     await SettingsStore.instance.sauvegarderHorlogeAnalogique(valeur);
     state = state.copyWith(horlogeAnalogique: valeur);
   }
+
+  /// MODE HÉBRAÏQUE (§7) : les jours de la semaine s'affichent en
+  /// translittération — Yom Ehad (jour 1) … Yom Shabbat (jour 7).
+  Future<void> basculerModeHebreu(bool valeur) async {
+    await SettingsStore.instance.sauvegarderModeHebreu(valeur);
+    state = state.copyWith(modeHebreu: valeur);
+  }
 }
 
 /// Provider des paramètres.
 final settingsProvider =
-    NotifierProvider<SettingsController, SettingsState>(
-        SettingsController.new);
+    NotifierProvider<SettingsController, SettingsState>(SettingsController.new);

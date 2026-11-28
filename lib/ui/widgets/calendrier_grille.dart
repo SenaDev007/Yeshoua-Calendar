@@ -18,7 +18,9 @@ import 'package:flutter/services.dart';
 import 'package:horloge_celeste_engine/horloge_celeste_engine.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../data/models/formatters.dart';
 import 'carte_saisonniere.dart';
+import 'images_fetes.dart';
 
 // ─────────────────────────────────────────────────────────────────────
 //  En-tête radial — miroir du CalendarHeader.tsx web
@@ -345,6 +347,7 @@ class GrilleMois extends StatelessWidget {
     required this.fetesParJour,
     required this.jourSelectionne,
     required this.onJourTape,
+    this.modeHebreu = false,
   });
 
   final List<JourBiblique> joursMois;
@@ -352,12 +355,14 @@ class GrilleMois extends StatelessWidget {
   final JourBiblique? jourSelectionne;
   final ValueChanged<JourBiblique> onJourTape;
 
-  static const _entetes = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Shabbat'];
+  /// MODE HÉBRAÏQUE (§7) : en-têtes translittérés (Ehad … Shabbat).
+  final bool modeHebreu;
 
   @override
   Widget build(BuildContext context) {
     final decalage =
         joursMois.isNotEmpty ? joursMois.first.jourDeSemaine - 1 : 0;
+    final entetes = entetesGrille(modeHebreu);
 
     // Cases de la grille : vides d'alignement + jours du mois + vides de fin,
     // puis découpage par lignes de 7 — même principe que la grille web.
@@ -393,19 +398,21 @@ class GrilleMois extends StatelessWidget {
       ),
       child: Column(
         children: [
-          // En-têtes des jours (miroir DAYS_OF_WEEK web).
+          // En-têtes des jours — abrégés ou translittérés (mode hébraïque).
           Row(
             children: [
-              for (final e in _entetes)
+              for (final e in entetes)
                 Expanded(
                   child: Center(
                     child: Text(
                       e,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: e == 'Shabbat'
+                        color: e == 'Shabbat' || e == 'Shab.'
                             ? AppColors.orFonce
                             : AppColors.grisSecondaire,
-                        fontSize: e == 'Shabbat' ? 9.5 : 10.5,
+                        fontSize: e == 'Shabbat' || e == 'Shab.' ? 9 : 10,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 0.3,
                       ),
@@ -454,8 +461,45 @@ class CelluleJourAnimee extends StatefulWidget {
   State<CelluleJourAnimee> createState() => _CelluleJourAnimeeState();
 }
 
-class _CelluleJourAnimeeState extends State<CelluleJourAnimee> {
+class _CelluleJourAnimeeState extends State<CelluleJourAnimee>
+    with SingleTickerProviderStateMixin {
   bool _appuye = false;
+
+  /// EFFET FESTIVAL (§7) : halo doré qui PULSE autour des shabbats et des
+  /// fêtes — l'effet « waouh » demandé, visible dès la grille mensuelle.
+  AnimationController? _halo;
+
+  bool get _festif => widget.fetes.isNotEmpty || widget.jour.estShabbat;
+
+  @override
+  void initState() {
+    super.initState();
+    _syncHalo();
+  }
+
+  @override
+  void didUpdateWidget(CelluleJourAnimee ancien) {
+    super.didUpdateWidget(ancien);
+    _syncHalo();
+  }
+
+  void _syncHalo() {
+    if (_festif && _halo == null) {
+      _halo = AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 1600),
+      )..repeat(reverse: true);
+    } else if (!_festif && _halo != null) {
+      _halo!.dispose();
+      _halo = null;
+    }
+  }
+
+  @override
+  void dispose() {
+    _halo?.dispose();
+    super.dispose();
+  }
 
   bool get _estAujourdhui {
     final d = DateTime.now();
@@ -473,6 +517,7 @@ class _CelluleJourAnimeeState extends State<CelluleJourAnimee> {
     // par la NavigationBar morte.
     final couleurFete = aFete ? AppColors.depuisHex(fetes.first.couleur) : null;
     final estAujourdhui = _estAujourdhui;
+    final couleurHalo = aFete ? couleurFete! : AppColors.orSolaire;
 
     Color fond = Colors.transparent;
     if (j.estShabbat) fond = AppColors.orSolaire.withValues(alpha: 0.14);
@@ -487,7 +532,15 @@ class _CelluleJourAnimeeState extends State<CelluleJourAnimee> {
             ? AppColors.orFonce
             : AppColors.ardoise;
 
-    return GestureDetector(
+    // Bordure festive dorée / couleur de fête (liseré du festival).
+    Color? bordureFestive;
+    if (aFete) {
+      bordureFestive = couleurFete!.withValues(alpha: 0.65);
+    } else if (j.estShabbat) {
+      bordureFestive = AppColors.orSolaire.withValues(alpha: 0.60);
+    }
+
+    final contenu = GestureDetector(
       onTapDown: (_) => setState(() => _appuye = true),
       onTapCancel: () => setState(() => _appuye = false),
       onTapUp: (_) {
@@ -511,8 +564,12 @@ class _CelluleJourAnimeeState extends State<CelluleJourAnimee> {
                   ? AppColors.bleuCiel
                   : estAujourdhui
                       ? AppColors.orSolaire
-                      : Colors.transparent,
-              width: widget.estSelectionne || estAujourdhui ? 2 : 0,
+                      : bordureFestive ?? Colors.transparent,
+              width: widget.estSelectionne || estAujourdhui
+                  ? 2
+                  : bordureFestive != null
+                      ? 1.4
+                      : 0,
             ),
           ),
           child: Column(
@@ -537,34 +594,45 @@ class _CelluleJourAnimeeState extends State<CelluleJourAnimee> {
                   height: 1.0,
                 ),
               ),
-              const SizedBox(height: 3),
+              const SizedBox(height: 2),
+              // Image symbolique en miniature : l'agneau de Pessah, le
+              // shofar, les matzot… directement dans la case du jour.
               if (aFete)
                 Tooltip(
                   message: fetes.map((f) => f.nomFr).join(' · '),
-                  child: Container(
-                    width: 6,
-                    height: 6,
-                    decoration: BoxDecoration(
-                      color: couleurFete!,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: couleurFete!.withValues(alpha: 0.5),
-                          blurRadius: 3,
-                        ),
-                      ],
-                    ),
-                  ),
+                  child: MedaillonFete(
+                      asset: imagePourFete(fetes.first), taille: 20),
                 )
               else if (j.estShabbat)
-                Icon(Icons.star_rounded,
-                    size: 9, color: AppColors.orSolaire.withValues(alpha: 0.8))
+                MedaillonFete(asset: imageShabbat, taille: 18)
               else
                 const SizedBox(height: 6),
             ],
           ),
         ),
       ),
+    );
+
+    // Halo pulsé uniquement pour les jours festifs (économie de rendu).
+    if (_halo == null) return contenu;
+    return AnimatedBuilder(
+      animation: _halo!,
+      builder: (context, _) {
+        final pulse = _halo!.value;
+        return Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: couleurHalo.withValues(alpha: 0.22 + 0.30 * pulse),
+                blurRadius: 7 + 9 * pulse,
+                spreadRadius: 0.6 + 0.8 * pulse,
+              ),
+            ],
+          ),
+          child: contenu,
+        );
+      },
     );
   }
 }
@@ -580,12 +648,16 @@ class CartesMois extends StatelessWidget {
     required this.fetesParJour,
     required this.jourSelectionne,
     required this.onJourTape,
+    this.modeHebreu = false,
   });
 
   final List<JourBiblique> joursMois;
   final Map<int, List<FeteBiblique>> fetesParJour;
   final JourBiblique? jourSelectionne;
   final ValueChanged<JourBiblique> onJourTape;
+
+  /// MODE HÉBRAÏQUE (§7) : noms des jours translittérés sur les cartes.
+  final bool modeHebreu;
 
   @override
   Widget build(BuildContext context) {
@@ -604,6 +676,7 @@ class CartesMois extends StatelessWidget {
         fetes: fetesParJour[joursMois[index].jourDuMois] ?? const [],
         estSelectionne: GrilleMois._memeJour(jourSelectionne, joursMois[index]),
         onTape: onJourTape,
+        modeHebreu: modeHebreu,
       ),
     );
   }
@@ -616,6 +689,7 @@ class CarteJourAnimee extends StatefulWidget {
     required this.fetes,
     required this.estSelectionne,
     required this.onTape,
+    this.modeHebreu = false,
   });
 
   final JourBiblique jour;
@@ -623,12 +697,52 @@ class CarteJourAnimee extends StatefulWidget {
   final bool estSelectionne;
   final ValueChanged<JourBiblique> onTape;
 
+  /// MODE HÉBRAÏQUE (§7) : nom du jour translittéré (Yom Shabbat…).
+  final bool modeHebreu;
+
   @override
   State<CarteJourAnimee> createState() => _CarteJourAnimeeState();
 }
 
-class _CarteJourAnimeeState extends State<CarteJourAnimee> {
+class _CarteJourAnimeeState extends State<CarteJourAnimee>
+    with SingleTickerProviderStateMixin {
   bool _appuye = false;
+
+  /// EFFET FESTIVAL (§7) : halo pulsé autour des cartes de shabbat et de
+  /// fêtes — effet « waouh » en mode cartes.
+  AnimationController? _halo;
+
+  bool get _festif => widget.fetes.isNotEmpty || widget.jour.estShabbat;
+
+  @override
+  void initState() {
+    super.initState();
+    _syncHalo();
+  }
+
+  @override
+  void didUpdateWidget(CarteJourAnimee ancien) {
+    super.didUpdateWidget(ancien);
+    _syncHalo();
+  }
+
+  void _syncHalo() {
+    if (_festif && _halo == null) {
+      _halo = AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 1700),
+      )..repeat(reverse: true);
+    } else if (!_festif && _halo != null) {
+      _halo!.dispose();
+      _halo = null;
+    }
+  }
+
+  @override
+  void dispose() {
+    _halo?.dispose();
+    super.dispose();
+  }
 
   bool get _estAujourdhui {
     final d = DateTime.now();
@@ -643,6 +757,9 @@ class _CarteJourAnimeeState extends State<CarteJourAnimee> {
     final aFete = fetes.isNotEmpty;
     final couleurFete = aFete ? AppColors.depuisHex(fetes.first.couleur) : null;
     final estAujourdhui = _estAujourdhui;
+    final couleurHalo = aFete ? couleurFete! : AppColors.orSolaire;
+    final assetFete =
+        aFete ? imagePourFete(fetes.first) : (j.estShabbat ? imageShabbat : '');
 
     Color fond = AppColors.blanc;
     Color? bordure = AppColors.ardoisePastel.withValues(alpha: 0.8);
@@ -657,7 +774,7 @@ class _CarteJourAnimeeState extends State<CarteJourAnimee> {
     if (estAujourdhui) bordure = AppColors.bleuCiel;
     if (widget.estSelectionne) bordure = AppColors.bleuCielFonce;
 
-    return GestureDetector(
+    final contenu = GestureDetector(
       onTapDown: (_) => setState(() => _appuye = true),
       onTapCancel: () => setState(() => _appuye = false),
       onTapUp: (_) {
@@ -677,7 +794,9 @@ class _CarteJourAnimeeState extends State<CarteJourAnimee> {
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: bordure!,
-              width: widget.estSelectionne || estAujourdhui ? 2 : 1,
+              width: widget.estSelectionne || estAujourdhui
+                  ? 2
+                  : (_festif ? 1.6 : 1),
             ),
             boxShadow: [
               BoxShadow(
@@ -709,7 +828,7 @@ class _CarteJourAnimeeState extends State<CarteJourAnimee> {
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      j.nomJourSemaine,
+                      nomJourAfficheCourt(j.nomJourSemaine, widget.modeHebreu),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -719,6 +838,13 @@ class _CarteJourAnimeeState extends State<CarteJourAnimee> {
                       ),
                     ),
                   ),
+                  // Image symbolique de la fête ou du shabbat — l'agneau de
+                  // Pessah, le shofar de Teroua, les matzot, la cabane…
+                  if (assetFete.isNotEmpty) ...[
+                    const SizedBox(width: 6),
+                    MedaillonFete(asset: assetFete, taille: 40),
+                    const SizedBox(width: 6),
+                  ],
                   if (estAujourdhui)
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -742,8 +868,7 @@ class _CarteJourAnimeeState extends State<CarteJourAnimee> {
               if (aFete)
                 Row(
                   children: [
-                    Icon(Icons.celebration_outlined,
-                        size: 12, color: couleurFete),
+                    Icon(Icons.auto_awesome, size: 12, color: couleurFete),
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
@@ -791,6 +916,29 @@ class _CarteJourAnimeeState extends State<CarteJourAnimee> {
           ),
         ),
       ),
+    );
+
+    // Halo pulsé AROUND la carte — effet de festival pour le shabbat et
+    // chaque fête de l'Alliance (§7).
+    if (_halo == null) return contenu;
+    return AnimatedBuilder(
+      animation: _halo!,
+      builder: (context, _) {
+        final pulse = _halo!.value;
+        return Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: couleurHalo.withValues(alpha: 0.20 + 0.32 * pulse),
+                blurRadius: 10 + 12 * pulse,
+                spreadRadius: 0.8 + 1.2 * pulse,
+              ),
+            ],
+          ),
+          child: contenu,
+        );
+      },
     );
   }
 }

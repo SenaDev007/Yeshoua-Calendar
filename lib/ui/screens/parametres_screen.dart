@@ -12,17 +12,42 @@ import '../../state/settings_controller.dart';
 import '../../state/horloge_controller.dart';
 import '../widgets/cartes.dart';
 
-class ParametresScreen extends ConsumerWidget {
+class ParametresScreen extends ConsumerStatefulWidget {
   const ParametresScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ParametresScreen> createState() => _ParametresScreenState();
+}
+
+class _ParametresScreenState extends ConsumerState<ParametresScreen> {
+  /// Recherche de pays/ville — la liste couvre désormais TOUS les pays
+  /// (203 États et territoires, hors connexion), un filtre est indispensable.
+  final _recherche = TextEditingController();
+  String _filtre = '';
+
+  @override
+  void dispose() {
+    _recherche.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider);
     final etat = ref.watch(horlogeProvider);
+    final requete = _filtre.trim().toLowerCase();
+    final villesFiltrees = requete.isEmpty
+        ? villesIntegreees
+        : villesIntegreees
+            .where((v) =>
+                v.pays.toLowerCase().contains(requete) ||
+                v.ville.toLowerCase().contains(requete))
+            .toList();
     final villesParPays = <String, List<VilleIntegree>>{};
-    for (final v in villesIntegreees) {
+    for (final v in villesFiltrees) {
       villesParPays.putIfAbsent(v.pays, () => []).add(v);
     }
+    final paysTries = villesParPays.keys.toList()..sort();
 
     return Scaffold(
       backgroundColor: AppColors.ivoire,
@@ -126,56 +151,150 @@ class ParametresScreen extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 8),
-                ...[
-                  for (final entry in villesParPays.entries)
-                    ExpansionTile(
-                      tilePadding: EdgeInsets.zero,
-                      childrenPadding: EdgeInsets.zero,
-                      dense: true,
-                      iconColor: AppColors.bleuCiel,
-                      collapsedIconColor: AppColors.grisSecondaire,
-                      title: Text(
-                        entry.key,
-                        style: const TextStyle(
+                // RECHERCHE — indispensable avec les ~200 pays intégrés.
+                TextField(
+                  controller: _recherche,
+                  onChanged: (v) => setState(() => _filtre = v),
+                  decoration: InputDecoration(
+                    hintText:
+                        'Rechercher un pays ou une ville (ex. : Bénin, Paris)…',
+                    isDense: true,
+                    prefixIcon: const Icon(Icons.search, size: 19),
+                    suffixIcon: _filtre.isEmpty
+                        ? null
+                        : IconButton(
+                            icon: const Icon(Icons.close, size: 16),
+                            onPressed: () {
+                              _recherche.clear();
+                              setState(() => _filtre = '');
+                            },
+                          ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  '${villesFiltrees.length} villes · ${villesParPays.length} pays '
+                  '(tous intégrés hors connexion)',
+                  style: TextStyle(
+                    color: AppColors.grisSecondaire.withValues(alpha: 0.85),
+                    fontSize: 11,
+                  ),
+                ),
+                for (final pays in paysTries)
+                  ExpansionTile(
+                    tilePadding: EdgeInsets.zero,
+                    childrenPadding: EdgeInsets.zero,
+                    dense: true,
+                    iconColor: AppColors.bleuCiel,
+                    collapsedIconColor: AppColors.grisSecondaire,
+                    title: Text(
+                      pays,
+                      style: const TextStyle(
+                        color: AppColors.ardoise,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                      ),
+                    ),
+                    children: [
+                      for (final ville in villesParPays[pays]!)
+                        // Material transparent requis : le ListTile est
+                        // posé sur un Container coloré — sans lui, une
+                        // assertion Flutter casse le rendu (zone grise).
+                        Material(
+                          type: MaterialType.transparency,
+                          child: ListTile(
+                            dense: true,
+                            leading: Icon(
+                              settings.position.libelle ==
+                                      '${ville.ville}, ${ville.pays}'
+                                  ? Icons.radio_button_checked
+                                  : Icons.radio_button_off,
+                              size: 18,
+                              color: AppColors.bleuCiel,
+                            ),
+                            title: Text(ville.ville,
+                                style: const TextStyle(fontSize: 13)),
+                            subtitle: Text(
+                              '${ville.latitude.toStringAsFixed(2)}, ${ville.longitude.toStringAsFixed(2)}',
+                              style: const TextStyle(fontSize: 11),
+                            ),
+                            onTap: () {
+                              ref
+                                  .read(settingsProvider.notifier)
+                                  .choisirVille(ville);
+                              Navigator.of(context).pop();
+                            },
+                          ),
+                        ),
+                    ],
+                  ),
+                if (villesParPays.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 10),
+                    child: Text(
+                      'Aucun pays ne correspond à cette recherche.',
+                      style: TextStyle(
+                          color: AppColors.grisSecondaire, fontSize: 12),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // ── Affichage (§7) — MODE HÉBRAÏQUE ──
+          TitreSection('Affichage', icone: Icons.style_outlined),
+          CarteCeleste(
+            enfant: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.orSolaire.withValues(alpha: 0.12),
+                    border: Border.all(
+                        color: AppColors.orSolaire.withValues(alpha: 0.5)),
+                  ),
+                  child: const Icon(Icons.translate_rounded,
+                      color: AppColors.orFonce, size: 21),
+                ),
+                const SizedBox(width: 13),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Mode hébraïque',
+                        style: TextStyle(
                           color: AppColors.ardoise,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 14,
                         ),
                       ),
-                      children: [
-                        for (final ville in entry.value)
-                          // Material transparent requis : le ListTile est
-                          // posé sur un Container coloré — sans lui, une
-                          // assertion Flutter casse le rendu (zone grise).
-                          Material(
-                            type: MaterialType.transparency,
-                            child: ListTile(
-                              dense: true,
-                              leading: Icon(
-                                settings.position.libelle ==
-                                        '${ville.ville}, ${ville.pays}'
-                                    ? Icons.radio_button_checked
-                                    : Icons.radio_button_off,
-                                size: 18,
-                                color: AppColors.bleuCiel,
-                              ),
-                              title: Text(ville.ville,
-                                  style: const TextStyle(fontSize: 13)),
-                              subtitle: Text(
-                                '${ville.latitude.toStringAsFixed(2)}, ${ville.longitude.toStringAsFixed(2)}',
-                                style: const TextStyle(fontSize: 11),
-                              ),
-                              onTap: () {
-                                ref
-                                    .read(settingsProvider.notifier)
-                                    .choisirVille(ville);
-                                Navigator.of(context).pop();
-                              },
-                            ),
-                          ),
-                      ],
-                    ),
-                ],
+                      Text(
+                        'Les jours s\u2019affichent en translittération : '
+                        'Yom Ehad (jour 1), Yom Sheni… jusqu\u2019à '
+                        'Yom Shabbat (7e jour).',
+                        style: TextStyle(
+                          color:
+                              AppColors.grisSecondaire.withValues(alpha: 0.9),
+                          fontSize: 11.5,
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Switch(
+                  value: settings.modeHebreu,
+                  activeColor: AppColors.orSolaire,
+                  activeTrackColor: AppColors.orSolaire.withValues(alpha: 0.55),
+                  inactiveThumbColor: AppColors.blanc,
+                  inactiveTrackColor: AppColors.grisSecondaire,
+                  onChanged: (v) =>
+                      ref.read(settingsProvider.notifier).basculerModeHebreu(v),
+                ),
               ],
             ),
           ),
@@ -265,15 +384,26 @@ class ParametresScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 14),
                 Text(
-                  'Calendrier biblique de 364 jours — mêmes règles que le '
-                  'calendrier du Mouvement Christ Libère (52 semaines exactes, '
-                  '1ᵉʳ Aviv un mercredi à l\u2019équinoxe de mars, 12 mois de '
-                  '30/31 jours, 10 fêtes de l\u2019Éternel, Shabbats hebdomadaires). '
-                  'Parité vérifiée automatiquement sur les données réelles.',
+                  'Le calendrier de l\u2019Éternel est un système calendaire '
+                  'solaire de 364 jours décrit dans le Livre d\u2019Hénoch, le '
+                  'Livre des Jubilés et les Manuscrits de Qumrân. Il est '
+                  'parfaitement divisible par sept, créant exactement '
+                  '52 semaines par an. Chaque année commence un mercredi et '
+                  'maintient une structure immuable, contrairement au '
+                  'calendrier lunaire traditionnel.',
                   style: TextStyle(
                     color: AppColors.grisSecondaire.withValues(alpha: 0.95),
                     fontSize: 12,
                     height: 1.45,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  '© 2026 Horloge Céleste — YEHI OR Tech',
+                  style: TextStyle(
+                    color: AppColors.grisSecondaire.withValues(alpha: 0.8),
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ],

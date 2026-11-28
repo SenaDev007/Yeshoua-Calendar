@@ -170,6 +170,7 @@ class SettingsStore {
   static const cleAlarmeSoir = 'hc_alarme_soir';
   static const cleAlarmesPersonnalisees = 'hc_alarmes_personnalisees';
   static const cleCompteurPersonnalisees = 'hc_alarmes_pers_compteur';
+  static const cleModeHebreu = 'hc_mode_hebreu';
   static const cleDerniereTransition = 'hc_derniere_transition';
   static const cleEtatTemporel = 'hc_etat_temporel';
   static const cleHistoriqueNotifications = 'hc_historique_notifications';
@@ -197,6 +198,12 @@ class SettingsStore {
 
   Future<void> sauvegarderHorlogeAnalogique(bool v) =>
       prefs.setBool(cleHorlogeAnalogique, v);
+
+  // ── Mode hébraïque (§7) — translittération des jours ──
+
+  bool modeHebreu() => prefs.getBool(cleModeHebreu) ?? false;
+
+  Future<void> sauvegarderModeHebreu(bool v) => prefs.setBool(cleModeHebreu, v);
 
   // ── Alarmes (§8.4) ──
 

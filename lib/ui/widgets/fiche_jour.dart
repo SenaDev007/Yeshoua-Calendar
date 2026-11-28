@@ -15,6 +15,7 @@ import 'package:horloge_celeste_engine/horloge_celeste_engine.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../data/models/formatters.dart';
+import 'images_fetes.dart';
 
 /// Fiche détaillée d'un jour biblique — miroir du composant web DateInfo.
 class FicheJour extends StatelessWidget {
@@ -23,6 +24,7 @@ class FicheJour extends StatelessWidget {
     required this.jour,
     required this.annee,
     this.fetes,
+    this.modeHebreu = false,
   });
 
   final JourBiblique jour;
@@ -30,6 +32,9 @@ class FicheJour extends StatelessWidget {
 
   /// Fêtes couvrant ce jour (jour 1 d'une fête ou jours de durée > 1).
   final List<FeteBiblique>? fetes;
+
+  /// MODE HÉBRAÏQUE (§7) : noms des jours en translittération.
+  final bool modeHebreu;
 
   int get _semaine => ((jour.jourDeAnnee - 1) ~/ 7) + 1; // 364 = 52 × 7
 
@@ -86,7 +91,7 @@ class FicheJour extends StatelessWidget {
                 ),
                 const Spacer(),
                 Text(
-                  dateLongueFrancais(jour.dateGregorienne),
+                  dateCourteFrancais(jour.dateGregorienne),
                   style: const TextStyle(
                     color: AppColors.orVif,
                     fontWeight: FontWeight.w700,
@@ -153,8 +158,10 @@ class FicheJour extends StatelessWidget {
                         children: [
                           Text(
                             jour.estShabbat
-                                ? 'Shabbat — ${jour.nomJourSemaine}'
-                                : jour.nomJourSemaine,
+                                ? 'Shabbat — '
+                                    '${nomJourAffiche(jour.nomJourSemaine, modeHebreu)}'
+                                : nomJourAffiche(
+                                    jour.nomJourSemaine, modeHebreu),
                             style: const TextStyle(
                               color: AppColors.ardoise,
                               fontWeight: FontWeight.w800,
@@ -186,8 +193,10 @@ class FicheJour extends StatelessWidget {
                 Row(
                   children: [
                     Expanded(
-                        child: _mesure(Icons.event_available_outlined,
-                            'Jour de l\u2019année', '${jour.jourDeAnnee} / 364')),
+                        child: _mesure(
+                            Icons.event_available_outlined,
+                            'Jour de l\u2019année',
+                            '${jour.jourDeAnnee} / 364')),
                     const SizedBox(width: 10),
                     Expanded(
                         child: _mesure(Icons.all_inclusive_rounded, 'Semaine',
@@ -198,7 +207,8 @@ class FicheJour extends StatelessWidget {
                 Row(
                   children: [
                     Expanded(
-                        child: _mesure(Icons.wb_sunny_outlined, 'Saison', saison)),
+                        child:
+                            _mesure(Icons.wb_sunny_outlined, 'Saison', saison)),
                     const SizedBox(width: 10),
                     Expanded(
                         child: _mesure(Icons.menu_book_outlined, 'Trimestre',
@@ -209,7 +219,7 @@ class FicheJour extends StatelessWidget {
                 _mesureLarge(
                     Icons.calendar_month_outlined,
                     'Équivalent grégorien',
-                    dateLongueFrancais(jour.dateGregorienne),
+                    dateCourteFrancais(jour.dateGregorienne),
                     complement:
                         'Jour civil commençant à minuit — le jour biblique, '
                         'lui, commence au coucher du soleil'),
@@ -222,12 +232,10 @@ class FicheJour extends StatelessWidget {
                   children: [
                     if (jour.estShabbat) _badge('Shabbat', AppColors.orSolaire),
                     for (final fete in fetesDuJour)
-                      _badge(
-                          _libelleCategorie(fete.categorie),
+                      _badge(_libelleCategorie(fete.categorie),
                           AppColors.depuisHex(fete.couleur),
                           icone: Icons.star_rounded),
-                    _badge(
-                        'Entrée du jour : coucher du soleil',
+                    _badge('Entrée du jour : coucher du soleil',
                         AppColors.bleuCiel,
                         icone: Icons.wb_twilight_outlined),
                   ],
@@ -241,8 +249,11 @@ class FicheJour extends StatelessWidget {
   }
 
   // ── Encart de fête — description réelle du moteur (jamais inventée) ──
+  // Avec l'IMAGE SYMBOLIQUE de la fête (agneau de Pessah, matzot, shofar,
+  // cabane de Souccot…) — §7.
   Widget _encartFete(FeteBiblique fete) {
     final couleur = AppColors.depuisHex(fete.couleur);
+    final asset = imagePourFete(fete);
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(14),
@@ -256,6 +267,10 @@ class FicheJour extends StatelessWidget {
         children: [
           Row(
             children: [
+              if (asset.isNotEmpty) ...[
+                MedaillonFete(asset: asset, taille: 46),
+                const SizedBox(width: 10),
+              ],
               Icon(Icons.celebration_outlined, size: 16, color: couleur),
               const SizedBox(width: 6),
               Expanded(
@@ -290,8 +305,9 @@ class FicheJour extends StatelessWidget {
             runSpacing: 6,
             children: [
               _puce(fete.dateBiblique),
-              _puce(dateLongueFrancais(fete.dateGregorienne)),
-              if (fete.dureeJours > 1) _puce('Durée : ${fete.dureeJours} jours'),
+              _puce(dateCourteFrancais(fete.dateGregorienne)),
+              if (fete.dureeJours > 1)
+                _puce('Durée : ${fete.dureeJours} jours'),
               if (fete.travailInterdit) _puce('Travail interdit'),
               _puce(fete.referenceEcritures),
             ],
@@ -364,8 +380,7 @@ class FicheJour extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.orSolaire.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(12),
-          border:
-              Border.all(color: AppColors.orSolaire.withValues(alpha: 0.3)),
+          border: Border.all(color: AppColors.orSolaire.withValues(alpha: 0.3)),
         ),
         child: Row(
           children: [
@@ -495,8 +510,7 @@ class LegendeCalendrier extends StatelessWidget {
                 _item(AppColors.danger, 'Jeûne'),
                 _item(AppColors.succes, 'Nouvelle année'),
               ],
-              _item(AppColors.ardoise, 'Aujourd\u2019hui',
-                  anneau: true),
+              _item(AppColors.ardoise, 'Aujourd\u2019hui', anneau: true),
             ],
           ),
         ],

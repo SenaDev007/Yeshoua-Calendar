@@ -18,11 +18,13 @@ import 'package:horloge_celeste_engine/horloge_celeste_engine.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/models/formatters.dart';
 import '../../state/horloge_controller.dart';
+import '../../state/settings_controller.dart';
 import '../widgets/calendrier_grille.dart';
 import '../widgets/carte_saisonniere.dart';
 import '../widgets/cartes.dart';
 import '../widgets/fetes_et_saisons.dart';
 import '../widgets/fiche_jour.dart';
+import '../widgets/images_fetes.dart';
 
 class CalendrierScreen extends ConsumerStatefulWidget {
   const CalendrierScreen({super.key});
@@ -56,6 +58,8 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen>
   @override
   Widget build(BuildContext context) {
     final etat = ref.watch(horlogeProvider);
+    // MODE HÉBRAÏQUE (§7) — translittération des jours du calendrier.
+    final hebreu = ref.watch(settingsProvider).modeHebreu;
     final anneeReference = etat.anneeBiblique?.annee ??
         BiblicalCalendarEngine.anneePourDate(DateTime.now()).annee;
     final anneeChoisie = (anneeReference + _decalageAnnee).clamp(
@@ -103,10 +107,10 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen>
           child: TabBarView(
             controller: _onglets,
             children: [
-              _vueAujourdhui(etat, annee),
-              _vueSemaine(annee, etat),
-              _vueMensuelle(annee, etat),
-              _vueTrimestre(annee, etat),
+              _vueAujourdhui(etat, annee, hebreu),
+              _vueSemaine(annee, etat, hebreu),
+              _vueMensuelle(annee, etat, hebreu),
+              _vueTrimestre(annee, etat, hebreu),
               _vueAnnee(annee, etat),
             ],
           ),
@@ -117,7 +121,7 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen>
 
   // ─── Vue 1 : aujourd'hui ────────────────────────────────────────────
 
-  Widget _vueAujourdhui(HorlogeState etat, AnneeBiblique annee) {
+  Widget _vueAujourdhui(HorlogeState etat, AnneeBiblique annee, bool hebreu) {
     final jour = etat.jourBiblique ?? annee.jourPourDate(DateTime.now());
     final maintenant = etat.maintenant;
     // Fêtes à venir (joursRestants ≥ 0).
@@ -136,7 +140,7 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen>
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       children: [
         if (jour != null) ...[
-          _carteJourBiblique(jour, maintenant, etat),
+          _carteJourBiblique(jour, maintenant, etat, hebreu),
           const SizedBox(height: 12),
           _carteCoucherSoleil(etat),
           const SizedBox(height: 12),
@@ -167,7 +171,7 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen>
   }
 
   Widget _carteJourBiblique(
-      JourBiblique j, DateTime maintenant, HorlogeState etat) {
+      JourBiblique j, DateTime maintenant, HorlogeState etat, bool hebreu) {
     final aujourdhui =
         DateTime(maintenant.year, maintenant.month, maintenant.day);
     final estJourCourant = j.dateGregorienne == aujourdhui;
@@ -209,7 +213,8 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen>
           ),
           const SizedBox(height: 4),
           Text(
-            '${j.nomJourSemaine} · Jour ${j.jourDeAnnee} de l\u2019année ${etat.anneeBiblique?.libelle ?? ''}',
+            '${nomJourAffiche(j.nomJourSemaine, hebreu)} · '
+            'Jour ${j.jourDeAnnee} de l\u2019année ${etat.anneeBiblique?.libelle ?? ''}',
             style: TextStyle(
                 color: AppColors.blanc.withValues(alpha: 0.82), fontSize: 13.5),
           ),
@@ -220,7 +225,7 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen>
                   size: 13, color: AppColors.orVif),
               const SizedBox(width: 6),
               Text(
-                dateLongueFrancais(j.dateGregorienne),
+                dateCourteFrancais(j.dateGregorienne),
                 style: TextStyle(
                   color: AppColors.blanc.withValues(alpha: 0.85),
                   fontSize: 12.5,
@@ -322,6 +327,7 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen>
 
   Widget _carteProchaineFete(FeteBiblique fete, int joursRestants) {
     final couleur = AppColors.depuisHex(fete.couleur);
+    final asset = imagePourFete(fete);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -332,33 +338,51 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'PROCHAINE FÊTE',
-            style: TextStyle(
-              color: couleur.withValues(alpha: 1.0),
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.4,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            fete.nomFr,
-            style: const TextStyle(
-              color: AppColors.ardoise,
-              fontWeight: FontWeight.w800,
-              fontSize: 20,
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // IMAGE SYMBOLIQUE de la fête — l'agneau de Pessah, les matzot,
+              // le shofar… (§7).
+              if (asset.isNotEmpty) ...[
+                MedaillonFete(asset: asset, taille: 52),
+                const SizedBox(width: 12),
+              ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'PROCHAINE FÊTE',
+                      style: TextStyle(
+                        color: couleur.withValues(alpha: 1.0),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      fete.nomFr,
+                      style: const TextStyle(
+                        color: AppColors.ardoise,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 20,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
           if (fete.nomHebrew != null && fete.nomHebrew!.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.only(top: 2),
+              padding: const EdgeInsets.only(top: 4),
               child: Text(
                 fete.nomHebrew!,
                 style: const TextStyle(color: AppColors.ardoise, fontSize: 13),
               ),
             ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           Text(
             joursRestants == 0
                 ? 'Aujourd\u2019hui !'
@@ -371,7 +395,7 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen>
           ),
           const SizedBox(height: 2),
           Text(
-            '${fete.dateBiblique} — ${dateLongueFrancais(fete.dateGregorienne)}',
+            '${fete.dateBiblique} — ${dateCourteFrancais(fete.dateGregorienne)}',
             style: const TextStyle(
               color: AppColors.grisSecondaire,
               fontSize: 12,
@@ -403,6 +427,9 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen>
       ),
       child: Row(
         children: [
+          // IMAGE SYMBOLIQUE de la fête (§7).
+          MedaillonFete(asset: imagePourFete(fete), taille: 44),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -417,7 +444,7 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen>
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  '${fete.dateBiblique} — ${dateLongueFrancais(fete.dateGregorienne)}'
+                  '${fete.dateBiblique} — ${dateCourteFrancais(fete.dateGregorienne)}'
                   '${fete.dureeJours > 1 ? ' · ${fete.dureeJours} jours' : ''}',
                   style: const TextStyle(
                       color: AppColors.grisSecondaire, fontSize: 12.5),
@@ -507,7 +534,7 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen>
 
   // ─── Vue 2 : vue hebdomadaire — les 7 jours de la semaine courante ──
 
-  Widget _vueSemaine(AnneeBiblique annee, HorlogeState etat) {
+  Widget _vueSemaine(AnneeBiblique annee, HorlogeState etat, bool hebreu) {
     final jours = _joursSemaine(annee, _semaineCourante);
     final jourDuJour = annee.jourPourDate(etat.maintenant);
 
@@ -554,7 +581,7 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen>
         for (final j in jours)
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
-            child: _tuileJour(annee, j),
+            child: _tuileJour(annee, j, hebreu),
           ),
         const SizedBox(height: 6),
         if (_jourSelectionne != null)
@@ -562,6 +589,7 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen>
             jour: _jourSelectionne!,
             annee: annee,
             fetes: fetesSelectionnees,
+            modeHebreu: hebreu,
           ),
         const SizedBox(height: 14),
         const LegendeCalendrier(),
@@ -655,8 +683,8 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen>
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'du ${dateLongueFrancais(debut.dateGregorienne)} au '
-                        '${dateLongueFrancais(fin.dateGregorienne)}',
+                        'du ${dateCourteFrancais(debut.dateGregorienne)} au '
+                        '${dateCourteFrancais(fin.dateGregorienne)}',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: AppColors.blanc.withValues(alpha: 0.92),
@@ -717,8 +745,9 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen>
   }
 
   /// Tuile d'un jour de la semaine — liseré fête/shabbat, badge
-  /// « Aujourd'hui », sélection → fiche détaillée.
-  Widget _tuileJour(AnneeBiblique annee, JourBiblique j) {
+  /// « Aujourd'hui », sélection → fiche détaillée. Dates ABRÉGÉES et noms
+  /// de jours translittérés selon le mode (§7).
+  Widget _tuileJour(AnneeBiblique annee, JourBiblique j, bool hebreu) {
     final fetes = fetesDuJour(annee, j);
     final couleur =
         fetes.isNotEmpty ? AppColors.depuisHex(fetes.first.couleur) : null;
@@ -798,7 +827,8 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen>
                       children: [
                         Flexible(
                           child: Text(
-                            '${j.nomJourSemaine} · Jour ${j.jourDeAnnee}/364',
+                            '${nomJourAffiche(j.nomJourSemaine, hebreu)} · '
+                            'Jour ${j.jourDeAnnee}/364',
                             style: const TextStyle(
                               color: AppColors.ardoise,
                               fontWeight: FontWeight.w800,
@@ -830,7 +860,7 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen>
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      dateLongueFrancais(g),
+                      dateCourteFrancais(g),
                       style: const TextStyle(
                           color: AppColors.grisSecondaire, fontSize: 11.5),
                     ),
@@ -983,7 +1013,7 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen>
 
   // ─── Vue 3 : vue trimestrielle — la saison entière, ses 3 mois ──────
 
-  Widget _vueTrimestre(AnneeBiblique annee, HorlogeState etat) {
+  Widget _vueTrimestre(AnneeBiblique annee, HorlogeState etat, bool hebreu) {
     final saison = ImageSaison.depuisTrimestre(_trimestreCourant);
     final nom = ImageSaison.noms[saison]!;
     final joursTrimestre =
@@ -1113,6 +1143,7 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen>
             fetesParJour: _fetesPourMois(annee, annee.joursDuMois(mois)),
             jourSelectionne: _jourSelectionne,
             onJourTape: (j) => setState(() => _jourSelectionne = j),
+            modeHebreu: hebreu,
           ),
           const SizedBox(height: 12),
         ],
@@ -1121,6 +1152,7 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen>
             jour: _jourSelectionne!,
             annee: annee,
             fetes: fetesSelectionnees,
+            modeHebreu: hebreu,
           ),
         const SizedBox(height: 14),
         TitreSection(
@@ -1158,7 +1190,7 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen>
   // ─── Vue 4 : vue mensuelle — design web (en-tête radial, grille, cartes,
   //     clic sur une date → fiche détaillée, légendes) ───────────────────
 
-  Widget _vueMensuelle(AnneeBiblique annee, HorlogeState etat) {
+  Widget _vueMensuelle(AnneeBiblique annee, HorlogeState etat, bool hebreu) {
     final joursMois = annee.joursDuMois(_moisCourant);
     final nomMois = joursMois.isNotEmpty ? joursMois.first.nomMois : '';
     final saisonImage =
@@ -1268,6 +1300,7 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen>
                     fetesParJour: fetesParJour,
                     jourSelectionne: jourSelectionneEffectif,
                     onJourTape: (j) => setState(() => _jourSelectionne = j),
+                    modeHebreu: hebreu,
                   ),
                 )
               : Container(
@@ -1277,6 +1310,7 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen>
                     fetesParJour: fetesParJour,
                     jourSelectionne: jourSelectionneEffectif,
                     onJourTape: (j) => setState(() => _jourSelectionne = j),
+                    modeHebreu: hebreu,
                   ),
                 ),
         ),
@@ -1304,6 +1338,7 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen>
                     jour: jourSelectionneEffectif,
                     annee: annee,
                     fetes: fetesSelectionnees,
+                    modeHebreu: hebreu,
                   ),
                 )
               : const SizedBox.shrink(),
@@ -1393,8 +1428,8 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen>
                     ),
                   ),
                   Text(
-                    '${dateLongueFrancais(annee.debut).split(' ').skip(1).join(' ')} → '
-                    '${dateLongueFrancais(annee.fin).split(' ').skip(1).join(' ')} · '
+                    '${dateCourteFrancais(annee.debut).split(' ').skip(1).join(' ')} → '
+                    '${dateCourteFrancais(annee.fin).split(' ').skip(1).join(' ')} · '
                     '${annee.nombreJours} jours',
                     style: const TextStyle(
                       color: AppColors.grisSecondaire,

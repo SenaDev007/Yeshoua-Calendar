@@ -6,7 +6,7 @@ description: >-
   la nuit, douze heures saisonnières, alarmes spirituelles RHEMA.
   Calculs astronomiques 100 % embarqués — fonctionne hors connexion.
 publish_to: 'none'
-version: 1.0.2+4
+version: 1.0.3+5
 
 environment:
   sdk: '>=3.5.0 <4.0.0'
@@ -65,6 +65,7 @@ flutter:
     - assets/images/periode-jour.gif
     - assets/images/periode-nuit.gif
     - assets/images/cadran-biblique-fond.png
+    - assets/images/fetes/
     - assets/sounds/shofar.mp3
     - assets/sounds/cloche.mp3
     - assets/sounds/harpe.mp3
