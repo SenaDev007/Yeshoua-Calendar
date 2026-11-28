@@ -56,8 +56,11 @@ class MainActivity : FlutterActivity() {
                             val gestionnaire =
                                 WallpaperManager.getInstance(this)
                             val info = gestionnaire.wallpaperInfo
+                            // WallpaperInfo.getComponent() : ComponentName du
+                            // service (API officielle — il n'existe PAS de
+                            // getter « service », d'où l'erreur de compil).
                             val actif = info != null &&
-                                    info.service.className ==
+                                    info.component.className ==
                                     HorlogeWallpaperService::class.java.name
                             resultat.success(actif)
                         } catch (_: Exception) {
